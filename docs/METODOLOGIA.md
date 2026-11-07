@@ -8,7 +8,7 @@ Todos os valores vêm da PNAD Contínua (Pesquisa Nacional por Amostra de Domic�
 
 O universo é de pessoas de 10 anos ou mais. "Usou a internet" significa ter usado nos três meses anteriores à entrevista.
 
-Os números foram transcritos do informativo para `data/pnad_tic.json` e conferidos contra o texto e os gráficos do documento. A cobertura de imprensa da divulgação serviu só como segunda conferência e não alimenta nenhum gráfico.
+Os números foram transcritos do informativo para `data/pnad_tic.json` e conferidos contra o texto e os gráficos do documento. O projeto usa somente publicações do IBGE como fonte.
 
 ## Fato, leitura e limitação
 

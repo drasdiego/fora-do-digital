@@ -17,6 +17,18 @@ A PNAD Contínua (Pesquisa Nacional por Amostra de Domicílios Contínua) é a p
 3. **44,9% de quem não usa internet disse que não sabia usar.** É o principal motivo, à frente da falta de necessidade (27,8%) e do custo do serviço ou equipamento (9,0%). Fonte: IBGE, PNAD Contínua TIC 2025.
 4. **A lacuna se concentra em alguns grupos.** Entre pessoas de 60 anos ou mais, 74,5% usaram a internet (25,5% ficaram fora). Entre pessoas sem instrução, 50,1%, contra 97,4% entre quem tem ensino superior completo. Fonte: IBGE, PNAD Contínua TIC 2025.
 
+## O que o painel mostra
+
+- Indicadores principais com tendência: pessoas que usaram a internet, pessoas sem internet (em milhões e em percentual), domicílios com internet, pessoas com celular para uso pessoal e pessoas de 60 anos ou mais online.
+- Evolução do uso da internet nas áreas urbana e rural.
+- Recortes de 2025 por região, área, idade, instrução, sexo e cor ou raça, um de cada vez.
+- Motivos para não usar a internet, de pessoas e de domicílios, e motivos para não ter celular.
+- Finalidades de uso da internet e equipamentos usados para acessar.
+- Destaque com o rendimento médio mensal real per capita dos domicílios com e sem internet.
+- Simulador "Sua base de clientes", tabela alternativa em cada gráfico e download dos dados em CSV.
+
+Todas as fontes são publicações do IBGE.
+
 ## Como rodar
 
 Abra o arquivo `index.html` com duplo clique. Não precisa de servidor, instalação nem internet.
@@ -90,7 +102,6 @@ Quem desenha atendimento decide, muitas vezes, quais canais existem e quais saem
 
 - IBGE, PNAD Contínua: Acesso à Internet e à televisão e posse de telefone móvel celular para uso pessoal 2025 (informativo). Referência: 4º trimestre de 2025. Divulgação: 02/07/2026. [Documento](https://biblioteca.ibge.gov.br/visualizacao/livros/liv102290_informativo.pdf)
 - IBGE, PNAD Contínua: Acesso à Internet e à televisão e posse de telefone móvel celular para uso pessoal 2024 (informativo). Referência: 4º trimestre de 2024. [Documento](https://biblioteca.ibge.gov.br/visualizacao/livros/liv102193_informativo.pdf)
-- Cobertura da divulgação de 02/07/2026 (Viva), usada só para conferência. [Matéria](https://viva.com.br/tecnologia/internet-chega-a-90-da-populacao-e-celular-alcanca-1674-milhoes-em-2025.html)
 
 ## Licença
 

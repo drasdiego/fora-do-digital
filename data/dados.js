@@ -12,10 +12,6 @@ window.DADOS = {
    "titulo": "IBGE, PNAD Contínua: Acesso à Internet e à televisão e posse de telefone móvel celular para uso pessoal 2024 (informativo)",
    "url": "https://biblioteca.ibge.gov.br/visualizacao/livros/liv102193_informativo.pdf",
    "referencia": "4º trimestre de 2024"
-  },
-  "imprensa2025": {
-   "titulo": "Cobertura da divulgação de 02/07/2026 (Viva), usada só para conferência",
-   "url": "https://viva.com.br/tecnologia/internet-chega-a-90-da-populacao-e-celular-alcanca-1674-milhoes-em-2025.html"
   }
  },
  "notas": [
@@ -502,8 +498,7 @@ window.DADOS = {
   },
   "fontes_curtas": {
    "tic2025": "IBGE, PNAD Contínua TIC, ref. 4º trimestre de 2025",
-   "tic2024": "IBGE, PNAD Contínua TIC, ref. 4º trimestre de 2024",
-   "imprensa2025": "Cobertura da divulgação de 02/07/2026"
+   "tic2024": "IBGE, PNAD Contínua TIC, ref. 4º trimestre de 2024"
   },
   "renda_razao_pct": 75.7,
   "soma_motivos": {

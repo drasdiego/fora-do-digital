@@ -1245,7 +1245,7 @@
       );
     }
     htmlEl("li", null, "Os gráficos usam o ano real no eixo horizontal. Onde a série não tem dado, a linha é tracejada ou fica em branco, e nunca vira zero.", notas);
-    htmlEl("li", null, "Atualizado em " + dataBr(D.atualizado_em) + ". Os valores foram transcritos dos informativos do IBGE e conferidos contra a fonte; a cobertura de imprensa serviu só para conferência.", notas);
+    htmlEl("li", null, "Atualizado em " + dataBr(D.atualizado_em) + ". Os valores foram transcritos dos informativos do IBGE e conferidos contra o texto e os gráficos de cada documento.", notas);
   }
 
   function csvCampo(v) {
