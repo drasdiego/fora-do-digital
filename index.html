@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fora do Digital: quem ainda está fora da internet no Brasil</title>
+<meta name="description" content="Painel aberto com dados da PNAD Contínua TIC 2025 (IBGE): quem ainda está fora da internet no Brasil e o que isso significa para quem desenha atendimento 100% digital.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#090a1b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236d4df0'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cpath d='M8 24L24 8' stroke='%235ee7ff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+(function () {
+  try {
+    var salvo = localStorage.getItem("fdd-tema");
+    if (salvo === "light" || salvo === "dark") document.documentElement.setAttribute("data-theme", salvo);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="assets/estilo.css">
+</head>
+<body>
+<a class="pular" href="#conteudo">Ir para o conteúdo</a>
+
+<header class="topo">
+  <div class="contorno topo-barra">
+    <span class="chip chip-fonte"><span class="chip-ponto" aria-hidden="true"></span><abbr title="Pesquisa Nacional por Amostra de Domicílios Contínua, módulo Tecnologia da Informação e Comunicação">PNAD Contínua TIC 2025</abbr> · <abbr title="Instituto Brasileiro de Geografia e Estatística">IBGE</abbr></span>
+    <button type="button" class="botao botao-tema" id="botao-tema">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="icone-tema"><path class="icone-sol" d="M12 4V2m0 20v-2M4 12H2m20 0h-2M5.6 5.6 4.2 4.2m15.6 15.6-1.4-1.4M18.4 5.6l1.4-1.4M4.2 19.8l1.4-1.4M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="icone-lua" d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <span id="rotulo-tema">Tema claro</span>
+    </button>
+  </div>
+  <div class="contorno hero">
+    <div class="hero-texto">
+    <p class="hero-sobre">Painel aberto de dados</p>
+    <h1>Fora do Digital</h1>
+    <p class="hero-pergunta">Quem ainda está fora da internet no Brasil, e o que isso significa para quem desenha atendimento 100% digital?</p>
+    <p class="hero-resposta" id="hero-resposta"></p>
+    <p class="hero-glossario">Os dados vêm da <strong>PNAD Contínua</strong> (Pesquisa Nacional por Amostra de Domicílios Contínua), módulo <strong>TIC</strong> (Tecnologia da Informação e Comunicação), do <strong>IBGE</strong> (Instituto Brasileiro de Geografia e Estatística), e valem para pessoas de 10 anos ou mais. <abbr title="pontos percentuais">p.p.</abbr> significa pontos percentuais: a diferença entre dois percentuais.</p>
+    </div>
+    <figure class="hero-visual">
+      <div id="hero-pontos"></div>
+      <figcaption>Cada ponto é 1 em cada 100 pessoas de 10 anos ou mais. Os pontos em magenta são quem não usou a internet em 2025. Fonte: PNAD Contínua TIC 2025, IBGE.</figcaption>
+    </figure>
+  </div>
+</header>
+
+<main id="conteudo" class="contorno">
+  <noscript><p class="aviso">Este painel precisa de JavaScript para desenhar os gráficos. Os dados estão em data/pnad_tic.json.</p></noscript>
+  <p class="aviso" id="erro-dados" hidden>Não foi possível carregar data/dados.js. Rode python3 scripts/gerar_dados.py e recarregue a página.</p>
+
+  <section class="secao" aria-labelledby="t-kpis">
+    <div class="secao-cab">
+      <h2 id="t-kpis">Onde estamos em 2025</h2>
+      <p class="lead">Seis indicadores com a variação contra o ano anterior disponível na série. Cada minigráfico respeita o espaçamento real dos anos e marca todos os pontos.</p>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <details class="tabela-alt" id="tabela-kpis">
+      <summary>Ver dados em tabela</summary>
+      <div class="tabela-rolagem" id="tabela-kpis-corpo"></div>
+    </details>
+  </section>
+
+  <section class="secao" aria-labelledby="t-linhas">
+    <div class="secao-cab">
+      <h2 id="t-linhas">A distância entre urbano e rural encolheu, mas existe</h2>
+      <p class="lead" id="lead-linhas"></p>
+    </div>
+    <div class="cartao">
+      <div class="legenda" id="legenda-linhas"></div>
+      <div class="grafico" id="grafico-linhas"></div>
+      <p class="nota-grafico" id="nota-linhas"></p>
+      <details class="tabela-alt">
+        <summary>Ver dados em tabela</summary>
+        <div class="tabela-rolagem" id="tabela-linhas"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="secao" aria-labelledby="t-motivos">
+    <div class="secao-cab">
+      <h2 id="t-motivos">Por que não usam</h2>
+      <p class="lead" id="lead-motivos"></p>
+    </div>
+    <div class="cartao">
+      <div class="segmentos" role="group" aria-label="Escolher a base dos motivos" id="seg-motivos"></div>
+      <p class="rotulo-grafico" id="rotulo-motivos"></p>
+      <div class="grafico" id="grafico-motivos"></div>
+      <p class="nota-grafico" id="nota-motivos"></p>
+      <details class="tabela-alt">
+        <summary>Ver dados em tabela</summary>
+        <div class="tabela-rolagem" id="tabela-motivos"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="secao" aria-labelledby="t-recortes">
+    <div class="secao-cab">
+      <h2 id="t-recortes">Quem fica de fora em cada recorte</h2>
+      <p class="lead">Percentual que usou a internet em 2025, um recorte por vez. A linha tracejada marca a média do Brasil.</p>
+    </div>
+    <div class="cartao">
+      <div class="segmentos" role="group" aria-label="Escolher o recorte" id="seg-recortes"></div>
+      <p class="rotulo-grafico" id="rotulo-recortes"></p>
+      <div class="grafico" id="grafico-recortes"></div>
+      <p class="nota-grafico" id="nota-recortes"></p>
+      <details class="tabela-alt">
+        <summary>Ver dados em tabela</summary>
+        <div class="tabela-rolagem" id="tabela-recortes"></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="secao" aria-labelledby="t-atendimento">
+    <div class="secao-cab">
+      <h2 id="t-atendimento">Para quem desenha atendimento</h2>
+      <p class="lead">Cada cartão separa o <strong>fato</strong> (número com fonte) da <strong>leitura</strong> (recomendação do projeto, em linguagem condicional) e da <strong>limitação</strong> do dado. A leitura é opinião fundamentada, não resultado da pesquisa.</p>
+    </div>
+    <div class="cartoes-atendimento" id="atendimento"></div>
+  </section>
+
+  <section class="secao" aria-labelledby="t-simulador">
+    <div class="secao-cab">
+      <h2 id="t-simulador">Sua base de clientes</h2>
+      <p class="lead">Informe o tamanho da base e escolha um perfil. O painel aplica o percentual nacional daquele perfil para dar uma ordem de grandeza de quantas pessoas provavelmente não usam internet.</p>
+    </div>
+    <div class="cartao simulador">
+      <form class="sim-form" id="sim-form" onsubmit="return false">
+        <div class="campo">
+          <label for="sim-base">Tamanho da base (pessoas)</label>
+          <input id="sim-base" name="base" type="text" inputmode="numeric" autocomplete="off" value="10.000" aria-describedby="sim-ajuda">
+          <span class="ajuda" id="sim-ajuda">Somente números inteiros.</span>
+        </div>
+        <div class="campo">
+          <label for="sim-perfil">Perfil da base (um por vez)</label>
+          <select id="sim-perfil" name="perfil"></select>
+        </div>
+      </form>
+      <div class="sim-resultado" id="sim-resultado" aria-live="polite" aria-atomic="true"></div>
+      <div class="grafico grafico-sim" id="sim-barra" aria-hidden="true"></div>
+      <p class="aviso aviso-sim"><strong>Limitação:</strong> é uma estimativa simples. Aplica o percentual nacional do perfil escolhido a toda a base, um perfil por vez, sem combinar perfis (por exemplo, idosos que moram em área rural). Não considera a composição real da sua base e só vale para pessoas de 10 anos ou mais. Use como ordem de grandeza, não como previsão.</p>
+    </div>
+  </section>
+
+  <section class="secao" aria-labelledby="t-uso">
+    <div class="secao-cab">
+      <h2 id="t-uso">Para que e como se usa a internet</h2>
+      <p class="lead" id="lead-uso"></p>
+    </div>
+    <div class="cartao">
+      <h3 class="sub">Finalidades de uso entre quem usou a internet</h3>
+      <div class="multiplos" id="multiplos"></div>
+      <p class="nota-grafico" id="nota-multiplos"></p>
+      <details class="tabela-alt">
+        <summary>Ver dados em tabela</summary>
+        <div class="tabela-rolagem" id="tabela-multiplos"></div>
+      </details>
+    </div>
+    <div class="cartao">
+      <h3 class="sub">Equipamento usado para acessar a internet</h3>
+      <div class="legenda" id="legenda-equip"></div>
+      <div class="grafico" id="grafico-equip"></div>
+      <p class="nota-grafico" id="nota-equip"></p>
+      <details class="tabela-alt">
+        <summary>Ver dados em tabela</summary>
+        <div class="tabela-rolagem" id="tabela-equip"></div>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  <div class="contorno rodape-grade">
+    <div>
+      <h2 class="rodape-titulo">Fontes</h2>
+      <ul class="lista-fontes" id="lista-fontes"></ul>
+    </div>
+    <div>
+      <h2 class="rodape-titulo">Notas metodológicas</h2>
+      <ul class="lista-notas" id="lista-notas"></ul>
+    </div>
+  </div>
+  <div class="contorno rodape-fim">
+    <button type="button" class="botao botao-primario" id="baixar-csv">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 19h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Baixar dados (CSV)
+    </button>
+    <p class="creditos">Feito por <strong>Diego Arruda</strong> · <a href="https://www.linkedin.com/in/drasdiego" rel="noopener">linkedin.com/in/drasdiego</a> · <a href="https://github.com/drasdiego" rel="noopener">github.com/drasdiego</a></p>
+    <p class="creditos creditos-pequeno">Código aberto sob licença MIT. Os dados pertencem ao IBGE e foram transcritos dos informativos oficiais.</p>
+  </div>
+</footer>
+
+<script src="data/dados.js"></script>
+<script src="assets/painel.js"></script>
+</body>
+</html>

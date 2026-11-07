@@ -1,0 +1,24 @@
+name: Validar dados
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validar o JSON de dados
+        run: python3 scripts/validar_dados.py
+
+      - name: Rodar os testes
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Conferir que data/dados.js está atualizado
+        run: python3 scripts/gerar_dados.py --check

@@ -1,0 +1,364 @@
+{
+  "projeto": "Fora do Digital",
+  "atualizado_em": "2026-11-07",
+  "fontes": {
+    "tic2025": {
+      "titulo": "IBGE, PNAD Contínua: Acesso à Internet e à televisão e posse de telefone móvel celular para uso pessoal 2025 (informativo)",
+      "url": "https://biblioteca.ibge.gov.br/visualizacao/livros/liv102290_informativo.pdf",
+      "referencia": "4º trimestre de 2025",
+      "divulgacao": "2026-07-02"
+    },
+    "tic2024": {
+      "titulo": "IBGE, PNAD Contínua: Acesso à Internet e à televisão e posse de telefone móvel celular para uso pessoal 2024 (informativo)",
+      "url": "https://biblioteca.ibge.gov.br/visualizacao/livros/liv102193_informativo.pdf",
+      "referencia": "4º trimestre de 2024"
+    },
+    "imprensa2025": {
+      "titulo": "Cobertura da divulgação de 02/07/2026 (Viva), usada só para conferência",
+      "url": "https://viva.com.br/tecnologia/internet-chega-a-90-da-populacao-e-celular-alcanca-1674-milhoes-em-2025.html"
+    }
+  },
+  "notas": [
+    "Pessoas de 10 anos ou mais; uso da Internet nos últimos três meses antes da entrevista.",
+    "O IBGE revisa a série a cada divulgação. Os valores de 2023 (e os de 2016 por área urbana e rural) vêm do informativo de 2024 e podem diferir um pouco da série revisada; os demais vêm do informativo de 2025.",
+    "PNAD Contínua é pesquisa por amostra: os percentuais são estimativas com margem de erro, que o informativo não traz em todas as quebras.",
+    "Recortes (região, idade, área) são mostrados um de cada vez. A pesquisa não permite somar recortes sem os microdados."
+  ],
+  "series": {
+    "internet_pessoas": {
+      "rotulo": "Pessoas que usaram a Internet",
+      "unidade": "%",
+      "valores": {
+        "2016": 66.0,
+        "2019": 79.4,
+        "2023": 88.0,
+        "2024": 89.2,
+        "2025": 90.5
+      },
+      "fonte": "tic2025",
+      "fonte_por_ano": {
+        "2023": "tic2024"
+      }
+    },
+    "internet_urbano": {
+      "rotulo": "Urbano",
+      "unidade": "%",
+      "valores": {
+        "2016": 71.4,
+        "2019": 83.6,
+        "2023": 89.6,
+        "2024": 90.3,
+        "2025": 91.5
+      },
+      "fonte": "tic2025",
+      "fonte_por_ano": {
+        "2016": "tic2024",
+        "2023": "tic2024"
+      }
+    },
+    "internet_rural": {
+      "rotulo": "Rural",
+      "unidade": "%",
+      "valores": {
+        "2016": 33.9,
+        "2019": 54.5,
+        "2023": 76.6,
+        "2024": 81.1,
+        "2025": 83.0
+      },
+      "fonte": "tic2025",
+      "fonte_por_ano": {
+        "2016": "tic2024",
+        "2023": "tic2024"
+      }
+    },
+    "celular_pessoas": {
+      "rotulo": "Pessoas com celular para uso pessoal",
+      "unidade": "%",
+      "valores": {
+        "2016": 77.4,
+        "2019": 81.3,
+        "2023": 87.6,
+        "2024": 88.9,
+        "2025": 89.8
+      },
+      "fonte": "tic2025",
+      "fonte_por_ano": {
+        "2023": "tic2024"
+      }
+    },
+    "internet_60mais": {
+      "rotulo": "Pessoas de 60 anos ou mais que usaram a Internet",
+      "unidade": "%",
+      "valores": {
+        "2019": 44.9,
+        "2023": 66.0,
+        "2024": 70.1,
+        "2025": 74.5
+      },
+      "fonte": "tic2025",
+      "fonte_por_ano": {
+        "2023": "tic2024"
+      }
+    },
+    "internet_domicilios": {
+      "rotulo": "Domicílios com uso da Internet",
+      "unidade": "%",
+      "valores": {
+        "2024": 93.7,
+        "2025": 95.0
+      },
+      "fonte": "tic2025"
+    },
+    "sem_internet_milhoes": {
+      "rotulo": "Pessoas que não usaram a Internet",
+      "unidade": "milhões",
+      "valores": {
+        "2019": 36.7,
+        "2024": 20.0,
+        "2025": 17.7
+      },
+      "fonte": "tic2025"
+    },
+    "sem_internet_pct": {
+      "rotulo": "Pessoas que não usaram a Internet",
+      "unidade": "%",
+      "valores": {
+        "2019": 20.6,
+        "2024": 10.8,
+        "2025": 9.5
+      },
+      "fonte": "tic2025"
+    }
+  },
+  "recortes_2025": {
+    "regiao": {
+      "rotulo": "Usaram a Internet por Grande Região (2025)",
+      "unidade": "%",
+      "fonte": "tic2025",
+      "valores": {
+        "Centro-Oeste": 93.6,
+        "Sul": 91.7,
+        "Sudeste": 90.9,
+        "Norte": 89.7,
+        "Nordeste": 88.5
+      },
+      "nota": "Centro-Oeste, Norte e Nordeste estão no texto do informativo; Sul e Sudeste vêm do gráfico por Grandes Regiões do mesmo informativo e batem com a cobertura da divulgação."
+    },
+    "area": {
+      "rotulo": "Usaram a Internet por área (2025)",
+      "unidade": "%",
+      "fonte": "tic2025",
+      "valores": {
+        "Urbana": 91.5,
+        "Rural": 83.0
+      }
+    },
+    "instrucao": {
+      "rotulo": "Usaram a Internet por instrução (2025)",
+      "unidade": "%",
+      "fonte": "tic2025",
+      "valores": {
+        "Sem instrução": 50.1,
+        "Superior incompleto": 98.4,
+        "Superior completo": 97.4
+      }
+    },
+    "sexo": {
+      "rotulo": "Usaram a Internet por sexo (2025)",
+      "unidade": "%",
+      "fonte": "tic2025",
+      "valores": {
+        "Mulheres": 91.1,
+        "Homens": 89.9
+      }
+    },
+    "cor_raca": {
+      "rotulo": "Usaram a Internet por cor ou raça (2025)",
+      "unidade": "%",
+      "fonte": "tic2025",
+      "valores": {
+        "Branca": 91.3,
+        "Preta": 90.0,
+        "Parda": 89.9
+      }
+    },
+    "idade": {
+      "rotulo": "Usaram a Internet por idade (2025)",
+      "unidade": "%",
+      "fonte": "tic2025",
+      "valores": {
+        "10 a 13 anos": 84.4,
+        "50 a 59 anos": 91.8,
+        "60 anos ou mais": 74.5
+      },
+      "nota": "O informativo diz que de 20 a 39 anos o uso passa de 96%."
+    },
+    "domicilios_area": {
+      "rotulo": "Domicílios com Internet por área (2025)",
+      "unidade": "%",
+      "fonte": "tic2025",
+      "valores": {
+        "Urbana": 95.8,
+        "Rural": 88.0
+      }
+    },
+    "renda_per_capita": {
+      "rotulo": "Rendimento médio mensal real per capita dos domicílios (2025)",
+      "unidade": "R$",
+      "fonte": "tic2025",
+      "valores": {
+        "Com Internet": 2312,
+        "Sem Internet": 1316
+      },
+      "nota": "Informativo 2025, seção Utilização da Internet no domicílio: rendimento 75,7% maior nos domicílios com Internet."
+    }
+  },
+  "motivos_pessoas_2025": {
+    "rotulo": "Principal motivo para não usar a Internet (pessoas, 2025)",
+    "unidade": "%",
+    "fonte": "tic2025",
+    "valores": {
+      "Não sabiam usar": 44.9,
+      "Falta de necessidade": 27.8,
+      "Serviço ou equipamento caro": 9.0,
+      "Privacidade ou segurança": 5.3,
+      "Falta de tempo": 4.6,
+      "Serviço indisponível": 1.8,
+      "Outro": 6.6
+    }
+  },
+  "motivos_domicilios_2025": {
+    "rotulo": "Motivo para não haver Internet no domicílio (2025, 4,0 milhões de domicílios)",
+    "unidade": "%",
+    "fonte": "tic2025",
+    "valores": {
+      "Ninguém sabia usar": 36.5,
+      "Serviço caro": 25.9,
+      "Falta de necessidade": 25.2,
+      "Equipamento caro": 2.8,
+      "Serviço indisponível na área": 2.6,
+      "Falta de tempo": 1.5,
+      "Privacidade ou segurança": 1.0
+    }
+  },
+  "sem_celular_motivos_2025": {
+    "rotulo": "Principal motivo para não ter celular (2025, 19,1 milhões de pessoas)",
+    "unidade": "%",
+    "fonte": "tic2025",
+    "valores": {
+      "Não sabiam usar": 31.1,
+      "Falta de necessidade": 21.1,
+      "Aparelho caro": 14.9,
+      "Privacidade ou segurança": 11.8,
+      "Usam o celular de outra pessoa": 10.1
+    }
+  },
+  "finalidades": {
+    "rotulo": "Finalidades de uso entre quem usou a Internet",
+    "unidade": "%",
+    "fonte": "tic2025",
+    "anos": [
+      "2016",
+      "2019",
+      "2022",
+      "2024",
+      "2025"
+    ],
+    "valores": {
+      "Chamadas de voz ou vídeo": [
+        73.4,
+        91.4,
+        94.3,
+        95.0,
+        95.3
+      ],
+      "Mensagens": [
+        94.3,
+        95.8,
+        91.9,
+        90.1,
+        90.2
+      ],
+      "Assistir a vídeos": [
+        76.6,
+        88.9,
+        88.3,
+        88.5,
+        89.3
+      ],
+      "Redes sociais": [
+        null,
+        null,
+        83.6,
+        84.2,
+        84.9
+      ],
+      "Acessar bancos": [
+        null,
+        null,
+        59.8,
+        71.0,
+        74.2
+      ],
+      "E-mail": [
+        69.1,
+        61.7,
+        59.2,
+        60.6,
+        61.2
+      ],
+      "Comprar bens ou serviços": [
+        null,
+        null,
+        41.8,
+        47.9,
+        52.7
+      ],
+      "Usar serviço público": [
+        null,
+        null,
+        33.2,
+        38.6,
+        41.1
+      ]
+    }
+  },
+  "equipamentos": {
+    "rotulo": "Equipamento usado para acessar a Internet",
+    "unidade": "%",
+    "fonte": "tic2025",
+    "anos": [
+      "2016",
+      "2019",
+      "2024",
+      "2025"
+    ],
+    "valores": {
+      "Celular": [
+        94.7,
+        98.6,
+        98.8,
+        98.7
+      ],
+      "Televisão": [
+        11.3,
+        32.2,
+        53.5,
+        57.8
+      ],
+      "Computador": [
+        63.2,
+        46.1,
+        33.3,
+        33.4
+      ],
+      "Tablet": [
+        16.4,
+        10.8,
+        8.2,
+        9.2
+      ]
+    }
+  }
+}
