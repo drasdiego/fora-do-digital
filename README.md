@@ -1,6 +1,10 @@
 # Fora do Digital
 
-Painel aberto, em HTML, CSS e JavaScript puros, que mostra quem ainda está fora da internet no Brasil com dados da PNAD Contínua TIC 2025 do IBGE.
+[![Validar dados](https://github.com/drasdiego/fora-do-digital/actions/workflows/validar.yml/badge.svg)](https://github.com/drasdiego/fora-do-digital/actions/workflows/validar.yml)
+
+Painel aberto, em HTML, CSS e JavaScript puros, que mostra quem ainda está fora da internet no Brasil com dados da PNAD Contínua TIC 2025 do IBGE. É um projeto pessoal de Diego Arruda e não é um produto oficial do IBGE.
+
+Painel no ar: https://drasdiego.github.io/fora-do-digital/
 
 ![Painel Fora do Digital](docs/screenshot.png)
 
@@ -59,6 +63,16 @@ python3 -m unittest discover -s tests -v
 
 O CI repete esses passos e confere, com `python3 scripts/gerar_dados.py --check`, que `data/dados.js` está atualizado.
 
+## Testes
+
+```
+python3 -m unittest discover -s tests -v
+```
+
+São 32 testes em `tests/test_dados.py`, escritos com o `unittest` que já vem no Python, sem instalar nada. Eles conferem o validador (fontes que não existem, percentuais fora de 0 a 100, anos fora de ordem, listas com tamanho diferente dos anos, motivos que não somam 100%, textos vazios, blocos obrigatórios e valores nulos), os cálculos do gerador (distância entre urbano e rural, variações, percentual de quem está fora, razão de renda e soma dos motivos), a geração do `data/dados.js` sem alterar os valores originais e o modo `--check`, que acusa um `data/dados.js` desatualizado.
+
+O workflow `.github/workflows/validar.yml` roda a validação do JSON, os testes e o `--check` a cada push e a cada pull request. O selo no topo deste README mostra o resultado da última execução.
+
 ## Estrutura
 
 ```
@@ -105,8 +119,14 @@ Quem desenha atendimento decide, muitas vezes, quais canais existem e quais saem
 
 ## Licença
 
-MIT. Veja [LICENSE](LICENSE). Os dados pertencem ao IBGE.
+Código: licença MIT, no arquivo [LICENSE](LICENSE). Vale para o HTML, o CSS, o JavaScript e os scripts em Python escritos para este projeto. O painel não usa bibliotecas de terceiros.
+
+Dados: não são de autoria deste projeto e não estão cobertos pela licença MIT. Foram transcritos à mão dos informativos da PNAD Contínua TIC publicados pelo IBGE e listados em "Fontes": o de 2025, divulgado em 02/07/2026, e o de 2024. O arquivo `data/pnad_tic.json` indica a fonte de cada série. Ao reutilizar, cite o IBGE como fonte.
 
 ## Autor
+
+Projeto pessoal de Diego Arruda, feito por conta própria, com dados públicos.
+
+Não é um produto oficial do Instituto Brasileiro de Geografia e Estatística (IBGE) nem de qualquer órgão público, e não tem vínculo com nenhuma instituição. As análises e eventuais erros são de responsabilidade do autor.
 
 **Diego Arruda** · [LinkedIn](https://www.linkedin.com/in/drasdiego) · [GitHub](https://github.com/drasdiego)
