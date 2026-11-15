@@ -846,7 +846,7 @@
       escreverFonte(nota, bloco.fonte);
       var txt = ". Os motivos listados somam " + pct(soma) + ".";
       if (soma < 99.8) txt += " O restante não consta nos dados deste projeto.";
-      txt += " Destaque em magenta: o motivo mais citado.";
+      txt += " Destaque em coral: o motivo mais citado.";
       nota.appendChild(document.createTextNode(txt));
       var nomes = ordenados(bloco);
       montarTabela($("tabela-motivos"), {
@@ -907,7 +907,7 @@
       var nota = $("nota-recortes");
       limpar(nota);
       escreverFonte(nota, r.fonte);
-      nota.appendChild(document.createTextNode(". Barras em magenta ficam abaixo da média do Brasil."));
+      nota.appendChild(document.createTextNode(". Barras em coral ficam abaixo da média do Brasil."));
       if (corte.parcial) nota.appendChild(document.createTextNode(" Lista parcial: o painel mostra só as categorias que constam nos dados do projeto."));
       if (r.nota) {
         var p = htmlEl("span", null, null, nota);
