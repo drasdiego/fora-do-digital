@@ -2,26 +2,55 @@
   "use strict";
 
   var D = window.DADOS;
-  if (!D) {
-    var erro = document.getElementById("erro-dados");
-    if (erro) erro.hidden = false;
-    return;
-  }
+  var DER = D ? D.derivados : null;
 
   var NS = "http://www.w3.org/2000/svg";
   var reduzMovimento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var DER = D.derivados;
   var ANO_ATUAL = "2025";
+
+  var IDIOMAS = ["pt", "en"];
+  var CHAVE_IDIOMA = "fdd-idioma";
+  var LANG = "pt";
+  var ESTATICO = window.I18N_ESTATICO || {};
+  var TRAD_DADOS = window.I18N_DADOS || {};
+  var FRASES = {};
+  var MESES_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var estado = { recorte: "idade", motivos: "pessoas" };
+  var animar = true;
+  var observadores = [];
+  var simAtualizar = function () {};
 
   function $(id) {
     return document.getElementById(id);
   }
 
-  function fmt(n, d) {
-    d = d === undefined ? 1 : d;
-    var partes = Math.abs(n).toFixed(d).split(".");
-    var inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    return (n < 0 ? "-" : "") + inteiro + (partes[1] ? "," + partes[1] : "");
+  function msg(chave) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    var entrada = ESTATICO[chave] || FRASES[chave];
+    if (!entrada || entrada[LANG] === undefined) {
+      if (window.console) console.warn("Sem traducao para a chave: " + chave);
+      return chave;
+    }
+    var v = entrada[LANG];
+    return typeof v === "function" ? v.apply(null, args) : v;
+  }
+  function d(texto) {
+    if (LANG === "pt") return texto;
+    var v = TRAD_DADOS[texto];
+    if (v === undefined) {
+      if (window.console) console.warn("Sem traducao para o dado: " + texto);
+      return texto;
+    }
+    return v;
+  }
+
+  function fmt(n, casas) {
+    casas = casas === undefined ? 1 : casas;
+    var partes = Math.abs(n).toFixed(casas).split(".");
+    var milhar = LANG === "en" ? "," : ".";
+    var decimal = LANG === "en" ? "." : ",";
+    var inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, milhar);
+    return (n < 0 ? "-" : "") + inteiro + (partes[1] ? decimal + partes[1] : "");
   }
   function pct(n) {
     return fmt(n, 1) + "%";
@@ -30,16 +59,28 @@
     return n > 0 ? "+" : "";
   }
   function pp(n) {
-    return sinal(n) + fmt(n, 1) + " p.p.";
+    return sinal(n) + fmt(n, 1) + (LANG === "en" ? " pp" : " p.p.");
   }
-  function listaPt(itens) {
+  function lista(itens) {
     if (itens.length <= 1) return itens.join("");
+    if (LANG === "en") {
+      if (itens.length === 2) return itens[0] + " and " + itens[1];
+      return itens.slice(0, -1).join(", ") + ", and " + itens[itens.length - 1];
+    }
     return itens.slice(0, -1).join(", ") + " e " + itens[itens.length - 1];
   }
-  function dataBr(iso) {
+  function dataFmt(iso) {
     var p = iso.split("-");
+    if (LANG === "en") return MESES_EN[parseInt(p[1], 10) - 1] + " " + parseInt(p[2], 10) + ", " + p[0];
     return p[2] + "/" + p[1] + "/" + p[0];
   }
+  function unidadeTxt(u) {
+    return LANG === "en" && u === "milhões" ? "million" : u;
+  }
+  function money(n) {
+    return "R$ " + fmt(n, 0);
+  }
+  FRASES = window.I18N_FRASES ? window.I18N_FRASES({ fmt: fmt, pct: pct, pp: pp, sinal: sinal, lista: lista, d: d, unidade: unidadeTxt, money: money }) : {};
   function anosOrdenados(obj) {
     return Object.keys(obj).sort(function (a, b) {
       return +a - +b;
@@ -80,7 +121,7 @@
   }
 
   function fonteCurta(id) {
-    return DER.fontes_curtas[id] || id;
+    return DER.fontes_curtas[id] ? d(DER.fontes_curtas[id]) : id;
   }
   function fonteLink(id) {
     var f = D.fontes[id];
@@ -97,7 +138,7 @@
     return fonteDoAno(serie, ano) !== serie.fonte;
   }
   function escreverFonte(host, id, prefixo) {
-    host.appendChild(document.createTextNode((prefixo || "Fonte: ")));
+    host.appendChild(document.createTextNode(prefixo || msg("fonte-prefixo")));
     host.appendChild(fonteLink(id));
   }
 
@@ -110,21 +151,33 @@
         fn(w);
       }
     }
-    if ("ResizeObserver" in window) new ResizeObserver(rodar).observe(host);
-    else window.addEventListener("resize", rodar);
+    if ("ResizeObserver" in window) {
+      var ro = new ResizeObserver(rodar);
+      ro.observe(host);
+      observadores.push(function () {
+        ro.disconnect();
+      });
+    } else {
+      window.addEventListener("resize", rodar);
+      observadores.push(function () {
+        window.removeEventListener("resize", rodar);
+      });
+    }
     rodar();
   }
 
+  function rotuloTema() {
+    var atual = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+    $("rotulo-tema").textContent = atual === "light" ? msg("tema-escuro") : msg("tema-claro");
+  }
   function aplicarTema(tema) {
     document.documentElement.setAttribute("data-theme", tema);
-    $("rotulo-tema").textContent = tema === "light" ? "Tema escuro" : "Tema claro";
+    rotuloTema();
     try {
       localStorage.setItem("fdd-tema", tema);
     } catch (e) {}
   }
-  function iniciarTema() {
-    var atual = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
-    $("rotulo-tema").textContent = atual === "light" ? "Tema escuro" : "Tema claro";
+  function ligarTema() {
     $("botao-tema").addEventListener("click", function () {
       var tema = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
       aplicarTema(tema);
@@ -200,7 +253,7 @@
   }
 
   function animarNumero(el, final, casas) {
-    if (reduzMovimento) {
+    if (reduzMovimento || !animar) {
       el.textContent = fmt(final, casas);
       return;
     }
@@ -241,10 +294,10 @@
     }
     var texto = vals
       .map(function (v, i) {
-        return anos[i] + ": " + fmt(v, 1) + (serie.unidade === "%" ? "%" : " " + serie.unidade);
+        return anos[i] + ": " + fmt(v, 1) + (serie.unidade === "%" ? "%" : " " + unidadeTxt(serie.unidade));
       })
       .join("; ");
-    var s = svgEl("svg", { viewBox: "0 0 " + w + " " + h, width: w, height: h, role: "img", "aria-label": "Minigráfico de " + serie.rotulo + ". " + texto }, host);
+    var s = svgEl("svg", { viewBox: "0 0 " + w + " " + h, width: w, height: h, role: "img", "aria-label": msg("spark-aria", d(serie.rotulo), texto) }, host);
     var solido = "";
     var tracejado = "";
     for (var i = 0; i < anos.length - 1; i++) {
@@ -273,18 +326,7 @@
       return motivos[b] - motivos[a];
     });
     var principal = nomes[0];
-    $("hero-resposta").innerHTML =
-      "<strong>Resposta curta (fato):</strong> " +
-      fmt(milhoes, 1) +
-      " milhões de pessoas, ou " +
-      pct(perc) +
-      " das pessoas de 10 anos ou mais, não usaram a internet em " +
-      ANO_ATUAL +
-      ". Entre elas, " +
-      pct(motivos[principal]) +
-      " apontaram “" +
-      principal +
-      "” como principal motivo.";
+    $("hero-resposta").innerHTML = msg("hero-resposta", milhoes, perc, ANO_ATUAL, motivos[principal], d(principal));
   }
 
   function iniciarPontos() {
@@ -292,7 +334,7 @@
     var perc = D.series.sem_internet_pct.valores[ANO_ATUAL];
     var passo = 26;
     var w = passo * 10;
-    var s = svgEl("svg", { viewBox: "0 0 " + w + " " + w, width: "100%", role: "img", "aria-label": "Cada ponto representa 1 em cada 100 pessoas de 10 anos ou mais. " + fmt(perc, 1) + " pontos estão destacados: são as pessoas que não usaram a internet em " + ANO_ATUAL + "." }, host);
+    var s = svgEl("svg", { viewBox: "0 0 " + w + " " + w, width: "100%", role: "img", "aria-label": msg("pontos-aria", perc, ANO_ATUAL) }, host);
     var defs = svgEl("defs", null, s);
     for (var i = 0; i < 100; i++) {
       var col = i % 10;
@@ -303,7 +345,8 @@
       var cls = "ponto-uso";
       if (restante >= 1) cls = "ponto-fora";
       var c = svgEl("circle", { cx: cx, cy: cy, r: 8.5, class: cls }, s);
-      c.style.animationDelay = i * 8 + "ms";
+      if (animar) c.style.animationDelay = i * 8 + "ms";
+      else c.style.animation = "none";
       if (restante > 0 && restante < 1) {
         var id = "recorte-ponto";
         var cp = svgEl("clipPath", { id: id }, defs);
@@ -315,23 +358,27 @@
 
   function iniciarKpis() {
     var S = D.series;
+    function subInicio(s) {
+      var primeiro = anosOrdenados(s.valores)[0];
+      return msg("kpi-sub-inicio", primeiro, s.valores[primeiro]);
+    }
     var definicoes = [
-      { id: "internet_pessoas", rotulo: "Pessoas que usaram a internet em 2025", sub: function (s) { return "Em " + anosOrdenados(s.valores)[0] + ": " + pct(s.valores[anosOrdenados(s.valores)[0]]); } },
-      { id: "sem_internet_milhoes", rotulo: "Pessoas sem internet em 2025", destaque: true, bomQuandoCai: true, casas: 1, unidade: "milhões", extra: "sem_internet_pct" },
-      { id: "internet_domicilios", rotulo: "Domicílios com internet", sub: function () { return "Pesquisa traz 2024 e 2025 para domicílios"; } },
-      { id: "celular_pessoas", rotulo: "Pessoas com celular para uso pessoal", sub: function (s) { return "Em " + anosOrdenados(s.valores)[0] + ": " + pct(s.valores[anosOrdenados(s.valores)[0]]); } },
-      { id: "internet_60mais", rotulo: "Pessoas de 60 anos ou mais online", sub: function (s) { return "Em " + anosOrdenados(s.valores)[0] + ": " + pct(s.valores[anosOrdenados(s.valores)[0]]); } },
-      { id: "internet_rural", rotulo: "Área rural online", sub: function (s) { return "Em " + anosOrdenados(s.valores)[0] + ": " + pct(s.valores[anosOrdenados(s.valores)[0]]); } },
+      { id: "internet_pessoas", sub: subInicio },
+      { id: "sem_internet_milhoes", destaque: true, bomQuandoCai: true, casas: 1, unidade: "milhões", extra: "sem_internet_pct" },
+      { id: "internet_domicilios", sub: function () { return msg("kpi-sub-domicilios"); } },
+      { id: "celular_pessoas", sub: subInicio },
+      { id: "internet_60mais", sub: subInicio },
+      { id: "internet_rural", sub: subInicio },
     ];
     var raiz = $("kpis");
     definicoes.forEach(function (def) {
       var serie = S[def.id];
       var v = DER.variacao[def.id];
       var cartao = htmlEl("article", "kpi" + (def.destaque ? " kpi-destaque" : ""), null, raiz);
-      htmlEl("h3", "kpi-rotulo", def.rotulo, cartao);
+      htmlEl("h3", "kpi-rotulo", msg("kpi-" + def.id), cartao);
       var valor = htmlEl("div", "kpi-valor", null, cartao);
       var numero = htmlEl("span", null, null, valor);
-      var unidade = def.unidade || "%";
+      var unidade = unidadeTxt(def.unidade || "%");
       htmlEl("small", null, unidade, valor);
       animarNumero(numero, serie.valores[ANO_ATUAL], 1);
 
@@ -339,20 +386,17 @@
       var delta = htmlEl("span", "delta" + (melhora ? "" : " delta-atencao"), null, cartao);
       var seta = v.delta >= 0 ? "M12 19V5m0 0-6 6m6-6 6 6" : "M12 5v14m0 0-6-6m6 6 6-6";
       delta.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="' + seta + '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      var rotuloDelta = sinal(v.delta) + fmt(v.delta, 1) + (v.unidade === "%" ? " p.p." : " " + v.unidade) + " vs " + v.ano_anterior;
+      var rotuloDelta = msg("kpi-delta", v.delta, v.unidade, v.ano_anterior);
       var visivel = htmlEl("span", null, rotuloDelta, delta);
       visivel.setAttribute("aria-hidden", "true");
-      var verbo = v.delta >= 0 ? "aumento" : "queda";
-      var unidadeExtenso = v.unidade === "%" ? "pontos percentuais" : v.unidade;
-      htmlEl("span", "sr", "Variação contra " + v.ano_anterior + ": " + verbo + " de " + fmt(Math.abs(v.delta), 1) + " " + unidadeExtenso + (melhora ? ", favorável" : ""), delta);
+      htmlEl("span", "sr", msg("kpi-delta-sr", v.ano_anterior, v.delta >= 0, Math.abs(v.delta), v.unidade, melhora), delta);
 
       var sub = htmlEl("p", "kpi-sub", null, cartao);
       if (def.extra) {
         var ex = S[def.extra];
         var anos = anosOrdenados(ex.valores);
         var vx = DER.variacao[def.extra];
-        sub.textContent =
-          pct(ex.valores[ANO_ATUAL]) + " das pessoas de 10 anos ou mais (" + pp(vx.delta) + " vs " + vx.ano_anterior + "; em " + anos[0] + " eram " + pct(ex.valores[anos[0]]) + ").";
+        sub.textContent = msg("kpi-sub-extra", ex.valores[ANO_ATUAL], vx.delta, vx.ano_anterior, anos[0], ex.valores[anos[0]]);
       } else sub.textContent = def.sub(serie);
 
       var spark = htmlEl("div", "spark", null, cartao);
@@ -369,19 +413,19 @@
     var anosTodos = uniaoAnos(definicoes.map(function (d) { return Object.keys(S[d.id].valores); }));
     var linhas = definicoes.map(function (def) {
       var serie = S[def.id];
-      var l = [serie.rotulo + (serie.unidade === "milhões" ? " (milhões)" : " (%)")];
+      var l = [msg("kpi-tab-indicador", d(serie.rotulo), serie.unidade)];
       anosTodos.forEach(function (a) {
         var v = serie.valores[a];
-        l.push(v === undefined ? "sem dado" : fmt(v, 1) + (ehAnterior(serie, String(a)) ? "*" : ""));
+        l.push(v === undefined ? msg("sem-dado") : fmt(v, 1) + (ehAnterior(serie, String(a)) ? "*" : ""));
       });
       return l;
     });
     montarTabela($("tabela-kpis-corpo"), {
-      legenda: "Séries dos seis indicadores, por ano.",
-      colunas: ["Indicador"].concat(anosTodos.map(String)),
-      primeira: "Indicador",
+      legenda: msg("kpi-tab-legenda"),
+      colunas: [msg("kpi-tab-primeira")].concat(anosTodos.map(String)),
+      primeira: msg("kpi-tab-primeira"),
       linhas: linhas,
-      rodape: "* Valor de divulgação anterior (" + fonteCurta("tic2024") + "), que pode diferir da série revisada. Fonte dos demais: " + fonteCurta("tic2025") + ".",
+      rodape: msg("kpi-tab-rodape", fonteCurta("tic2024"), fonteCurta("tic2025")),
     });
   }
 
@@ -394,9 +438,11 @@
     var tip = htmlEl("div", "dica", null, host);
     tip.hidden = true;
     var live = htmlEl("div", "sr", null, host.parentNode);
+    live.setAttribute("data-gerado", "1");
     live.setAttribute("aria-live", "polite");
     live.setAttribute("aria-atomic", "true");
-    var dica = htmlEl("span", "sr", "Use as setas para a esquerda e para a direita para ler cada ano. Escape fecha a leitura.", host.parentNode);
+    var dica = htmlEl("span", "sr", msg("dica-teclado"), host.parentNode);
+    dica.setAttribute("data-gerado", "1");
     dica.id = host.id + "-dica";
     host.tabIndex = 0;
     host.setAttribute("role", "group");
@@ -425,20 +471,20 @@
       var partes = [];
       linhas.forEach(function (l) {
         html +=
-          '<div class="dica-linha"><span class="' + l.s.cor + '">' + iconeMarcador(l.s.forma, l.ant) + l.s.rotulo + "</span><b>" + fmt(l.v, 1) + "%" + (l.ant ? " (anterior)" : "") + "</b></div>";
-        partes.push(l.s.rotulo + " " + fmt(l.v, 1) + "%" + (l.ant ? ", divulgação anterior" : ""));
+          '<div class="dica-linha"><span class="' + l.s.cor + '">' + iconeMarcador(l.s.forma, l.ant) + l.s.rotulo + "</span><b>" + fmt(l.v, 1) + "%" + (l.ant ? msg("dica-anterior") : "") + "</b></div>";
+        partes.push(l.s.rotulo + " " + fmt(l.v, 1) + "%" + (l.ant ? msg("dica-parte-anterior") : ""));
       });
       texto += partes.join("; ") + ".";
       if (cfg.gap && DER.gap_urbano_rural[a] !== undefined) {
-        html += '<div class="dica-gap">Gap urbano e rural: ' + fmt(DER.gap_urbano_rural[a], 1) + " p.p.</div>";
-        texto += " Gap urbano e rural de " + fmt(DER.gap_urbano_rural[a], 1) + " pontos percentuais.";
+        html += '<div class="dica-gap">' + msg("dica-gap", DER.gap_urbano_rural[a]) + "</div>";
+        texto += msg("dica-gap-sr", DER.gap_urbano_rural[a]);
       }
       var nomesFonte = fontes.map(fonteCurta).join("; ");
-      html += '<div class="dica-fonte">Fonte: ' + nomesFonte + "</div>";
-      texto += " Fonte: " + nomesFonte + ".";
+      html += '<div class="dica-fonte">' + msg("dica-fonte", nomesFonte) + "</div>";
+      texto += msg("dica-fonte-sr", nomesFonte);
       if (algumAnterior) {
-        html += '<div class="dica-aviso">Divulgação anterior: pode diferir da série revisada.</div>';
-        texto += " Parte desses valores é de divulgação anterior e pode diferir da série revisada.";
+        html += '<div class="dica-aviso">' + msg("dica-aviso") + "</div>";
+        texto += msg("dica-aviso-sr");
       }
       return { html: html, texto: texto };
     }
@@ -528,7 +574,7 @@
           var todos = comValor.length > 0 && comValor.every(function (sr) { return sr.dados && ehAnterior(sr.dados, String(a2)); });
           if (!todos) return;
           svgEl("line", { x1: X(a2), x2: X(a2), y1: m.t, y2: m.t + ph, class: "g-anterior" }, s);
-          var rotulo = a2 + ": divulgação anterior";
+          var rotulo = msg("anterior-rotulo", a2);
           var larg = rotulo.length * 6;
           var fim = X(a2) + larg / 2 > w - 4;
           var t = svgEl("text", { x: fim ? X(a2) - 5 : X(a2), y: m.t + ph - 8, "text-anchor": fim ? "end" : "middle", class: "g-texto" }, s);
@@ -584,7 +630,7 @@
         function colchete(ano, yPilula, ancora) {
           var x = X(ano);
           svgEl("line", { x1: x, x2: x, y1: Y(altoS.valores[ano]), y2: Y(baixoS.valores[ano]), class: "g-colchete" }, s);
-          var rotulo = "Gap " + ano + ": " + fmt(DER.gap_urbano_rural[ano], 1) + " p.p.";
+          var rotulo = msg("gap-pilula", ano, DER.gap_urbano_rural[ano]);
           var larg = rotulo.length * 6.7 + 18;
           var rx = ancora === "inicio" ? x - 8 : x + 6 - larg;
           var ry = yPilula - 12;
@@ -666,7 +712,7 @@
     ids.forEach(function (id) {
       var s = D.series[id];
       var anos = Object.keys(s.fonte_por_ano || {}).filter(function (a) { return ehAnterior(s, a); });
-      if (anos.length) porSerie.push({ rotulo: id === "internet_pessoas" ? "Brasil" : s.rotulo, anos: anos.sort() });
+      if (anos.length) porSerie.push({ rotulo: id === "internet_pessoas" ? msg("brasil") : d(s.rotulo), anos: anos.sort() });
     });
     return porSerie;
   }
@@ -677,14 +723,12 @@
     var anosGap = anosOrdenados(gap);
     var p = anosGap[0];
     var u = anosGap[anosGap.length - 1];
-    $("lead-linhas").textContent =
-      "Em " + p + ", " + pct(S.internet_urbano.valores[p]) + " das pessoas na área urbana e " + pct(S.internet_rural.valores[p]) + " na rural usavam internet, um gap de " + fmt(gap[p], 1) +
-      " p.p. Em " + u + ", são " + pct(S.internet_urbano.valores[u]) + " e " + pct(S.internet_rural.valores[u]) + ", um gap de " + fmt(gap[u], 1) + " p.p.";
+    $("lead-linhas").textContent = msg("lead-linhas", p, u, S.internet_urbano.valores[p], S.internet_rural.valores[p], gap[p], S.internet_urbano.valores[u], S.internet_rural.valores[u], gap[u]);
 
     var series = [
-      { id: "internet_urbano", rotulo: "Urbano", cor: "cor-lilas", forma: "circulo", dados: S.internet_urbano, valores: S.internet_urbano.valores },
-      { id: "internet_rural", rotulo: "Rural", cor: "cor-ciano", forma: "quadrado", dados: S.internet_rural, valores: S.internet_rural.valores },
-      { id: "internet_pessoas", rotulo: "Brasil", cor: "cor-neutro", forma: "triangulo", dados: S.internet_pessoas, valores: S.internet_pessoas.valores },
+      { id: "internet_urbano", rotulo: msg("urbano"), cor: "cor-lilas", forma: "circulo", dados: S.internet_urbano, valores: S.internet_urbano.valores },
+      { id: "internet_rural", rotulo: msg("rural"), cor: "cor-ciano", forma: "quadrado", dados: S.internet_rural, valores: S.internet_rural.valores },
+      { id: "internet_pessoas", rotulo: msg("brasil"), cor: "cor-neutro", forma: "triangulo", dados: S.internet_pessoas, valores: S.internet_pessoas.valores },
     ];
     var leg = $("legenda-linhas");
     series.forEach(function (sr) {
@@ -692,9 +736,9 @@
       item.innerHTML = iconeMarcador(sr.forma, false);
       item.appendChild(document.createTextNode(sr.rotulo));
     });
-    legendaItem(leg, '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><rect x="1" y="3" width="12" height="8" rx="2" class="g-gap" style="opacity:.5"/></svg>', "Gap entre urbano e rural");
-    legendaItem(leg, iconeMarcador("circulo", true), "Marcador vazado: divulgação anterior").classList.add("cor-neutro");
-    legendaItem(leg, '<svg viewBox="0 0 22 14" width="22" height="14" aria-hidden="true"><path d="M1 7h20" class="g-linha" style="stroke:var(--texto-2);stroke-width:2" stroke-dasharray="4 3"/></svg>', "Tracejado: anos sem dado");
+    legendaItem(leg, '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><rect x="1" y="3" width="12" height="8" rx="2" class="g-gap" style="opacity:.5"/></svg>', msg("gap-legenda"));
+    legendaItem(leg, iconeMarcador("circulo", true), msg("marcador-vazado")).classList.add("cor-neutro");
+    legendaItem(leg, '<svg viewBox="0 0 22 14" width="22" height="14" aria-hidden="true"><path d="M1 7h20" class="g-linha" style="stroke:var(--texto-2);stroke-width:2" stroke-dasharray="4 3"/></svg>', msg("tracejado-sem-dado"));
 
     var anosPresentes = anosOrdenados(S.internet_pessoas.valores).map(Number);
     var faltantes = [];
@@ -702,17 +746,15 @@
     var ant = anosAnteriores(["internet_pessoas", "internet_urbano", "internet_rural"]);
     var nota = $("nota-linhas");
     var t1 = htmlEl("span", null, null, nota);
-    t1.textContent =
-      "Os anos sem dado nesta série (" + listaPt(faltantes) + ") não são interpolados: os trechos tracejados só ligam pontos vizinhos. ";
+    t1.textContent = msg("nota-linhas-1", faltantes);
     var t2 = htmlEl("span", null, null, nota);
-    t2.textContent =
-      "Divulgação anterior: " + ant.map(function (x) { return x.rotulo + " em " + listaPt(x.anos); }).join("; ") + ". Esses pontos vêm de ";
+    t2.textContent = msg("nota-linhas-2", ant.map(function (x) { return msg("em-anos", x.rotulo, x.anos); }).join("; "));
     nota.appendChild(fonteLink("tic2024"));
-    nota.appendChild(document.createTextNode(" e podem diferir da série revisada. Demais pontos: "));
+    nota.appendChild(document.createTextNode(msg("nota-linhas-3")));
     nota.appendChild(fonteLink("tic2025"));
-    nota.appendChild(document.createTextNode(". O eixo vertical começa em 20% para mostrar a série rural."));
+    nota.appendChild(document.createTextNode(msg("nota-linhas-4")));
 
-    montarLinhas($("grafico-linhas"), {
+    montarLinhas(renovar("grafico-linhas"), {
       series: series,
       yMin: 20,
       yMax: 100,
@@ -720,9 +762,7 @@
       gap: { alto: "internet_urbano", baixo: "internet_rural", yPilulaFim: 55 },
       anotarAnterior: true,
       fonte: "tic2025",
-      aria:
-        "Gráfico de linhas: percentual de pessoas que usaram a internet no Brasil, na área urbana e na área rural, de " + anosPresentes[0] + " a " + anosPresentes[anosPresentes.length - 1] +
-        ". O gap entre urbano e rural foi de " + fmt(gap[p], 1) + " pontos percentuais em " + p + " e de " + fmt(gap[u], 1) + " em " + u + ". Use as setas para ler cada ano.",
+      aria: msg("linhas-aria", anosPresentes[0], anosPresentes[anosPresentes.length - 1], p, gap[p], u, gap[u]),
     });
 
     var anosTab = anosPresentes;
@@ -730,21 +770,21 @@
       var l = [sr.rotulo + " (%)"];
       anosTab.forEach(function (an) {
         var v = sr.valores[an];
-        l.push(v === undefined ? "sem dado" : fmt(v, 1) + (ehAnterior(sr.dados, String(an)) ? "*" : ""));
+        l.push(v === undefined ? msg("sem-dado") : fmt(v, 1) + (ehAnterior(sr.dados, String(an)) ? "*" : ""));
       });
       return l;
     });
-    var linhaGap = ["Gap urbano e rural (p.p.)"];
+    var linhaGap = [msg("linhas-tab-gap")];
     anosTab.forEach(function (an) {
-      linhaGap.push(gap[an] === undefined ? "sem dado" : fmt(gap[an], 1));
+      linhaGap.push(gap[an] === undefined ? msg("sem-dado") : fmt(gap[an], 1));
     });
     linhas.push(linhaGap);
     montarTabela($("tabela-linhas"), {
-      legenda: "Percentual de pessoas que usaram a internet, por área, e gap entre urbano e rural.",
-      colunas: ["Série"].concat(anosTab.map(String)),
-      primeira: "Série",
+      legenda: msg("linhas-tab-legenda"),
+      colunas: [msg("linhas-tab-primeira")].concat(anosTab.map(String)),
+      primeira: msg("linhas-tab-primeira"),
       linhas: linhas,
-      rodape: "* Divulgação anterior (" + fonteCurta("tic2024") + "). Demais valores: " + fonteCurta("tic2025") + ".",
+      rodape: msg("linhas-tab-rodape", fonteCurta("tic2024"), fonteCurta("tic2025")),
     });
   }
 
@@ -802,11 +842,10 @@
 
   function iniciarMotivos() {
     var blocos = {
-      pessoas: { chave: "motivos_pessoas_2025", rotulo: "Pessoas" },
-      domicilios: { chave: "motivos_domicilios_2025", rotulo: "Domicílios" },
-      celular: { chave: "sem_celular_motivos_2025", rotulo: "Sem celular" },
+      pessoas: { chave: "motivos_pessoas_2025", rotulo: msg("segmento-pessoas") },
+      domicilios: { chave: "motivos_domicilios_2025", rotulo: msg("segmento-domicilios") },
+      celular: { chave: "sem_celular_motivos_2025", rotulo: msg("segmento-celular") },
     };
-    var atual = "pessoas";
 
     function ordenados(bloco) {
       var v = bloco.valores;
@@ -818,52 +857,47 @@
 
     var P = ordenados(D.motivos_pessoas_2025);
     var Dm = ordenados(D.motivos_domicilios_2025);
-    $("lead-motivos").textContent =
-      "Entre as pessoas que não usaram a internet em " + ANO_ATUAL + ", o motivo mais citado foi “" + P[0] + "” (" + pct(D.motivos_pessoas_2025.valores[P[0]]) + "), seguido de “" + P[1] + "” (" +
-      pct(D.motivos_pessoas_2025.valores[P[1]]) + "). Nos domicílios sem internet, o motivo mais citado foi “" + Dm[0] + "” (" + pct(D.motivos_domicilios_2025.valores[Dm[0]]) + ").";
+    $("lead-motivos").textContent = msg("lead-motivos", ANO_ATUAL, d(P[0]), D.motivos_pessoas_2025.valores[P[0]], d(P[1]), D.motivos_pessoas_2025.valores[P[1]], d(Dm[0]), D.motivos_domicilios_2025.valores[Dm[0]]);
 
     function cfgAtual() {
-      var bloco = D[blocos[atual].chave];
+      var bloco = D[blocos[estado.motivos].chave];
       var nomes = ordenados(bloco);
       var maximo = Math.max.apply(null, nomes.map(function (n) { return bloco.valores[n]; }));
       return {
-        itens: nomes.map(function (n) { return { rotulo: n, valor: bloco.valores[n] }; }),
+        itens: nomes.map(function (n) { return { rotulo: d(n), valor: bloco.valores[n] }; }),
         max: Math.ceil(maximo / 10) * 10,
         destaque: 0,
         fmt: pct,
-        aria: "Gráfico de barras horizontais. " + bloco.rotulo + ". " + nomes.map(function (n) { return n + ": " + pct(bloco.valores[n]); }).join("; ") + ".",
+        aria: msg("barras-aria", d(bloco.rotulo), nomes.map(function (n) { return d(n) + ": " + pct(bloco.valores[n]); }).join("; ")),
       };
     }
 
     var grafico = montarBarras($("grafico-motivos"), cfgAtual);
 
     function atualizarTexto() {
-      var bloco = D[blocos[atual].chave];
-      $("rotulo-motivos").textContent = bloco.rotulo;
+      var bloco = D[blocos[estado.motivos].chave];
+      $("rotulo-motivos").textContent = d(bloco.rotulo);
       var nota = $("nota-motivos");
       limpar(nota);
-      var soma = DER.soma_motivos[blocos[atual].chave];
+      var soma = DER.soma_motivos[blocos[estado.motivos].chave];
       escreverFonte(nota, bloco.fonte);
-      var txt = ". Os motivos listados somam " + pct(soma) + ".";
-      if (soma < 99.8) txt += " O restante não consta nos dados deste projeto.";
-      txt += " Destaque em coral: o motivo mais citado.";
-      nota.appendChild(document.createTextNode(txt));
+      nota.appendChild(document.createTextNode(msg("nota-motivos", soma)));
       var nomes = ordenados(bloco);
       montarTabela($("tabela-motivos"), {
-        legenda: bloco.rotulo,
-        colunas: ["Motivo", "Percentual"],
-        primeira: "Motivo",
-        linhas: nomes.map(function (n) { return [n, pct(bloco.valores[n])]; }),
-        rodape: "Fonte: " + fonteCurta(bloco.fonte) + ". Soma dos motivos listados: " + pct(soma) + ".",
+        legenda: d(bloco.rotulo),
+        colunas: [msg("motivos-tab-motivo"), msg("motivos-tab-percentual")],
+        primeira: msg("motivos-tab-motivo"),
+        linhas: nomes.map(function (n) { return [d(n), pct(bloco.valores[n])]; }),
+        rodape: msg("motivos-tab-rodape", fonteCurta(bloco.fonte), soma),
       });
     }
 
     montarSegmentos(
       $("seg-motivos"),
       Object.keys(blocos).map(function (k) { return { id: k, rotulo: blocos[k].rotulo }; }),
-      atual,
+      estado.motivos,
       function (id) {
-        atual = id;
+        estado.motivos = id;
         atualizarTexto();
         grafico.redesenhar();
       }
@@ -874,61 +908,60 @@
   function iniciarRecortes() {
     var R = D.recortes_2025;
     var cortes = [
-      { id: "regiao", rotulo: "Região" },
-      { id: "area", rotulo: "Área" },
-      { id: "idade", rotulo: "Idade", parcial: true },
-      { id: "instrucao", rotulo: "Instrução", parcial: true },
-      { id: "sexo", rotulo: "Sexo" },
-      { id: "cor_raca", rotulo: "Cor ou raça", parcial: true },
+      { id: "regiao", rotulo: msg("segmento-regiao") },
+      { id: "area", rotulo: msg("segmento-area") },
+      { id: "idade", rotulo: msg("segmento-idade"), parcial: true },
+      { id: "instrucao", rotulo: msg("segmento-instrucao"), parcial: true },
+      { id: "sexo", rotulo: msg("segmento-sexo") },
+      { id: "cor_raca", rotulo: msg("segmento-cor_raca"), parcial: true },
     ];
-    var atual = "idade";
     var brasil = D.series.internet_pessoas.valores[ANO_ATUAL];
 
     function cfgAtual() {
-      var r = R[atual];
+      var r = R[estado.recorte];
       var nomes = Object.keys(r.valores);
       return {
         itens: nomes.map(function (n) {
           var v = r.valores[n];
-          return { rotulo: n, valor: v, extra: pp(Math.round((v - brasil) * 10) / 10) + " vs Brasil", abaixo: v < brasil };
+          return { rotulo: d(n), valor: v, extra: msg("recortes-extra", Math.round((v - brasil) * 10) / 10), abaixo: v < brasil };
         }),
         max: 100,
-        ref: { valor: brasil, rotulo: "Brasil " + pct(brasil) },
+        ref: { valor: brasil, rotulo: msg("recortes-ref", brasil) },
         fmt: pct,
-        aria: r.rotulo + ". Média do Brasil: " + pct(brasil) + ". " + nomes.map(function (n) { return n + ": " + pct(r.valores[n]); }).join("; ") + ".",
+        aria: msg("recortes-aria", d(r.rotulo), brasil, nomes.map(function (n) { return d(n) + ": " + pct(r.valores[n]); }).join("; ")),
       };
     }
     var grafico = montarBarras($("grafico-recortes"), cfgAtual);
 
     function atualizarTexto() {
-      var r = R[atual];
-      var corte = cortes.filter(function (c) { return c.id === atual; })[0];
-      $("rotulo-recortes").textContent = r.rotulo;
+      var r = R[estado.recorte];
+      var corte = cortes.filter(function (c) { return c.id === estado.recorte; })[0];
+      $("rotulo-recortes").textContent = d(r.rotulo);
       var nota = $("nota-recortes");
       limpar(nota);
       escreverFonte(nota, r.fonte);
-      nota.appendChild(document.createTextNode(". Barras em coral ficam abaixo da média do Brasil."));
-      if (corte.parcial) nota.appendChild(document.createTextNode(" Lista parcial: o painel mostra só as categorias que constam nos dados do projeto."));
+      nota.appendChild(document.createTextNode(msg("recortes-nota-coral")));
+      if (corte.parcial) nota.appendChild(document.createTextNode(msg("recortes-nota-parcial")));
       if (r.nota) {
         var p = htmlEl("span", null, null, nota);
         p.appendChild(document.createElement("br"));
-        p.appendChild(document.createTextNode("Nota do dado: " + r.nota));
+        p.appendChild(document.createTextNode(msg("nota-do-dado") + d(r.nota)));
       }
       var nomes = Object.keys(r.valores);
       montarTabela($("tabela-recortes"), {
-        legenda: r.rotulo,
-        colunas: ["Categoria", "Percentual", "Diferença para o Brasil"],
-        primeira: "Categoria",
-        linhas: nomes.map(function (n) { return [n, pct(r.valores[n]), pp(Math.round((r.valores[n] - brasil) * 10) / 10)]; }),
-        rodape: "Fonte: " + fonteCurta(r.fonte) + ". Média do Brasil: " + pct(brasil) + ".",
+        legenda: d(r.rotulo),
+        colunas: [msg("recortes-tab-categoria"), msg("recortes-tab-percentual"), msg("recortes-tab-diferenca")],
+        primeira: msg("recortes-tab-categoria"),
+        linhas: nomes.map(function (n) { return [d(n), pct(r.valores[n]), pp(Math.round((r.valores[n] - brasil) * 10) / 10)]; }),
+        rodape: msg("recortes-tab-rodape", fonteCurta(r.fonte), brasil),
       });
     }
     montarSegmentos(
       $("seg-recortes"),
       cortes.map(function (c) { return { id: c.id, rotulo: c.rotulo }; }),
-      atual,
+      estado.recorte,
       function (id) {
-        atual = id;
+        estado.recorte = id;
         atualizarTexto();
         grafico.redesenhar();
       }
@@ -950,60 +983,57 @@
     var ultimoF = anosF.length - 1;
     var fora = DER.fora;
     var renda = D.recortes_2025.renda_per_capita;
-    var money = function (n) {
-      return "R$ " + fmt(n, 0);
-    };
     var cartoes = [
       {
-        titulo: "Muita gente fora da internet não sabe usar",
+        titulo: msg("atend1-titulo"),
         fatos: [
-          { numero: pct(M["Não sabiam usar"]), texto: "das pessoas que não usaram a internet em " + ANO_ATUAL + " apontaram “Não sabiam usar” como principal motivo.", extra: "Depois vêm falta de necessidade (" + pct(M["Falta de necessidade"]) + ") e serviço ou equipamento caro (" + pct(M["Serviço ou equipamento caro"]) + ").", fonte: "tic2025" },
+          { numero: pct(M["Não sabiam usar"]), texto: msg("atend1-texto", ANO_ATUAL, d("Não sabiam usar")), extra: msg("atend1-extra", M["Falta de necessidade"], M["Serviço ou equipamento caro"]), fonte: "tic2025" },
         ],
-        leitura: "Se o atendimento for só digital, essa parcela talvez não consiga nem pedir ajuda. Pode valer manter telefone e atendimento humano, com o caminho fácil de achar.",
-        limite: "O percentual é sobre quem não usa internet (" + fmt(D.series.sem_internet_milhoes.valores[ANO_ATUAL], 1) + " milhões de pessoas), não sobre a base de clientes de uma empresa.",
+        leitura: msg("atend1-leitura"),
+        limite: msg("atend1-limite", D.series.sem_internet_milhoes.valores[ANO_ATUAL]),
       },
       {
-        titulo: "Entre pessoas de 60 anos ou mais, a lacuna é maior",
+        titulo: msg("atend2-titulo"),
         fatos: [
-          { numero: pct(fora.internet_60mais[ANO_ATUAL]), texto: "das pessoas de 60 anos ou mais não usaram a internet em " + ANO_ATUAL + " (100% menos " + pct(D.series.internet_60mais.valores[ANO_ATUAL]) + " que usaram).", extra: "Em 2019 eram " + pct(fora.internet_60mais["2019"]) + " nessa faixa; a média do Brasil em " + ANO_ATUAL + " é " + pct(fora.internet_pessoas[ANO_ATUAL]) + ".", fonte: "tic2025" },
+          { numero: pct(fora.internet_60mais[ANO_ATUAL]), texto: msg("atend2-texto", ANO_ATUAL, D.series.internet_60mais.valores[ANO_ATUAL]), extra: msg("atend2-extra", fora.internet_60mais["2019"], ANO_ATUAL, fora.internet_pessoas[ANO_ATUAL]), fonte: "tic2025" },
         ],
-        leitura: "Para públicos com muitos idosos, convém testar o fluxo com ajuda de uma pessoa e linguagem simples antes de desligar canais assistidos.",
-        limite: "É média nacional da faixa etária. O perfil real dos clientes de um serviço pode ser bem diferente. O valor é derivado: 100 menos o percentual que usou.",
+        leitura: msg("atend2-leitura"),
+        limite: msg("atend2-limite"),
       },
       {
-        titulo: "Estar online não significa resolver tudo online",
+        titulo: msg("atend3-titulo"),
         fatos: [
-          { numero: pct(F.valores["Usar serviço público"][ultimoF]), texto: "de quem usou a internet em " + anosF[ultimoF] + " usou serviço público online, contra " + pct(F.valores["Mensagens"][ultimoF]) + " que usaram mensagens.", fonte: "tic2025" },
-          { numero: pct(F.valores["Acessar bancos"][ultimoF]), texto: "acessaram bancos pela internet, contra " + pct(F.valores["Acessar bancos"][anosF.indexOf("2022")]) + " em 2022.", fonte: "tic2025" },
+          { numero: pct(F.valores["Usar serviço público"][ultimoF]), texto: msg("atend3-texto1", anosF[ultimoF], F.valores["Mensagens"][ultimoF]), fonte: "tic2025" },
+          { numero: pct(F.valores["Acessar bancos"][ultimoF]), texto: msg("atend3-texto2", F.valores["Acessar bancos"][anosF.indexOf("2022")]), fonte: "tic2025" },
         ],
-        leitura: "O uso de serviços mais complexos pode ser menor que o de mensagens. Vale medir onde as pessoas abandonam o fluxo digital e oferecer ajuda nesses pontos, em vez de supor que quem tem internet resolve sozinho.",
-        limite: "Percentuais entre quem usou a internet; uma pessoa pode marcar mais de uma finalidade. O dado mede uso, não dificuldade.",
+        leitura: msg("atend3-leitura"),
+        limite: msg("atend3-limite"),
       },
       {
-        titulo: "Domicílios sem internet têm renda menor",
+        titulo: msg("atend4-titulo"),
         fatos: [
-          { numero: money(renda.valores["Sem Internet"]), texto: "é o rendimento médio mensal real per capita dos domicílios sem internet, contra " + money(renda.valores["Com Internet"]) + " nos com internet (" + fmt(DER.renda_razao_pct, 1) + "% maior).", extra: "Entre os domicílios sem internet, " + pct(Mdom["Serviço caro"]) + " apontaram serviço caro e " + pct(Mdom["Ninguém sabia usar"]) + " disseram que ninguém sabia usar.", fonte: renda.fonte, nota: renda.nota },
+          { numero: money(renda.valores["Sem Internet"]), texto: msg("atend4-texto", renda.valores["Sem Internet"], renda.valores["Com Internet"], DER.renda_razao_pct), extra: msg("atend4-extra", Mdom["Serviço caro"], Mdom["Ninguém sabia usar"]), fonte: renda.fonte, nota: d(renda.nota) },
         ],
-        leitura: "Pode ser prudente oferecer alternativas que não exijam plano de dados e páginas leves para quem acessa por conexão limitada.",
-        limite: "Renda média por domicílio mostra associação, não prova que o custo seja a causa da falta de internet.",
+        leitura: msg("atend4-leitura"),
+        limite: msg("atend4-limite"),
       },
     ];
     var raiz = $("atendimento");
     cartoes.forEach(function (c) {
       var art = htmlEl("article", "atend", null, raiz);
       htmlEl("h3", null, c.titulo, art);
-      var fato = blocoAtend(art, "fato", "Fato");
+      var fato = blocoAtend(art, "fato", msg("atend-fato"));
       c.fatos.forEach(function (f) {
         htmlEl("p", "fato-numero", f.numero, fato);
         htmlEl("p", "fato-texto", f.texto, fato);
         if (f.extra) htmlEl("p", "fato-extra", f.extra, fato);
         var fonte = htmlEl("p", "fonte-linha", null, fato);
         escreverFonte(fonte, f.fonte);
-        if (f.nota) fonte.appendChild(document.createTextNode(". Nota do dado: " + f.nota));
+        if (f.nota) fonte.appendChild(document.createTextNode(". " + msg("nota-do-dado") + f.nota));
       });
-      var leitura = blocoAtend(art, "leitura", "Leitura");
+      var leitura = blocoAtend(art, "leitura", msg("atend-leitura"));
       htmlEl("p", null, c.leitura, leitura);
-      var limite = blocoAtend(art, "limite", "Limitação");
+      var limite = blocoAtend(art, "limite", msg("atend-limitacao"));
       htmlEl("p", null, c.limite, limite);
     });
   }
@@ -1011,18 +1041,20 @@
   function iniciarSimulador() {
     var R = D.recortes_2025;
     var foraRec = DER.fora.recortes_2025;
-    var perfis = [{ chave: "brasil", grupo: null, rotulo: "Brasil (média nacional)", uso: D.series.internet_pessoas.valores[ANO_ATUAL], fora: DER.fora.internet_pessoas[ANO_ATUAL], fonte: D.series.internet_pessoas.fonte }];
+    var perfis = [{ chave: "brasil", grupo: null, rotulo: msg("sim-brasil"), uso: D.series.internet_pessoas.valores[ANO_ATUAL], fora: DER.fora.internet_pessoas[ANO_ATUAL], fonte: D.series.internet_pessoas.fonte }];
     function adicionar(idRecorte, grupo, categorias) {
       categorias.forEach(function (cat) {
-        perfis.push({ chave: idRecorte + ":" + cat, grupo: grupo, rotulo: cat, uso: R[idRecorte].valores[cat], fora: foraRec[idRecorte][cat], fonte: R[idRecorte].fonte });
+        perfis.push({ chave: idRecorte + ":" + cat, grupo: grupo, rotulo: d(cat), uso: R[idRecorte].valores[cat], fora: foraRec[idRecorte][cat], fonte: R[idRecorte].fonte });
       });
     }
-    adicionar("regiao", "Região", Object.keys(R.regiao.valores));
-    adicionar("area", "Área", Object.keys(R.area.valores));
-    adicionar("idade", "Idade", ["60 anos ou mais"]);
-    adicionar("instrucao", "Instrução", ["Sem instrução"]);
+    adicionar("regiao", msg("sim-grupo-regiao"), Object.keys(R.regiao.valores));
+    adicionar("area", msg("sim-grupo-area"), Object.keys(R.area.valores));
+    adicionar("idade", msg("sim-grupo-idade"), ["60 anos ou mais"]);
+    adicionar("instrucao", msg("sim-grupo-instrucao"), ["Sem instrução"]);
 
     var select = $("sim-perfil");
+    var escolhido = select.value;
+    limpar(select);
     var grupoAtual = null;
     var pai = select;
     perfis.forEach(function (p) {
@@ -1034,17 +1066,13 @@
       var o = htmlEl("option", null, p.rotulo, pai);
       o.value = p.chave;
     });
+    if (escolhido) select.value = escolhido;
 
     var entrada = $("sim-base");
     var saida = $("sim-resultado");
     var barra = $("sim-barra");
-
-    function lerBase() {
-      var digitos = entrada.value.replace(/\D/g, "");
-      if (!digitos) return null;
-      var n = parseInt(digitos.slice(0, 10), 10);
-      return isNaN(n) ? null : n;
-    }
+    var baseAtual = lerBase();
+    if (baseAtual !== null) entrada.value = fmt(baseAtual, 0);
 
     function desenharBarra(foraPct, usoPct) {
       limpar(barra);
@@ -1055,8 +1083,8 @@
       svgEl("rect", { x: 0, y: 4, width: w, height: 32, rx: 10, class: "b-barra", style: "animation:none;opacity:.72" }, s);
       svgEl("rect", { x: 0, y: 4, width: larguraFora, height: 32, rx: 10, class: "b-barra b-barra-dest", style: "animation:none" }, s);
       var t1 = svgEl("text", { x: larguraFora + 10, y: 25, class: "b-valor", fill: "currentColor" }, s);
-      t1.textContent = "Sem internet " + pct(foraPct);
-      if (larguraFora + 10 + 150 > w) {
+      t1.textContent = msg("sim-barra", foraPct);
+      if (larguraFora + 10 + (LANG === "en" ? 170 : 150) > w) {
         t1.setAttribute("x", Math.max(6, larguraFora - 8));
         t1.setAttribute("text-anchor", "end");
         t1.textContent = pct(foraPct);
@@ -1068,34 +1096,48 @@
       var base = lerBase();
       limpar(saida);
       if (base === null || base === 0) {
-        htmlEl("p", "sim-linha", "Digite um tamanho de base maior que zero para ver a estimativa.", saida);
+        htmlEl("p", "sim-linha", msg("sim-vazio"), saida);
         limpar(barra);
         return;
       }
       var bruto = (base * perfil.fora) / 100;
       var estimado = Math.round(bruto);
       var numero = htmlEl("p", "sim-numero", null, saida);
-      numero.appendChild(document.createTextNode(bruto > 0 && bruto < 1 ? "menos de 1" : fmt(estimado, 0)));
-      htmlEl("small", null, "pessoas provavelmente sem internet", numero);
+      numero.appendChild(document.createTextNode(bruto > 0 && bruto < 1 ? msg("sim-menos-de-1") : fmt(estimado, 0)));
+      htmlEl("small", null, msg("sim-pessoas"), numero);
       var linha = htmlEl("p", "sim-linha", null, saida);
-      linha.textContent =
-        "Numa base de " + fmt(base, 0) + " pessoas com o perfil “" + perfil.rotulo + "”, " + pct(perfil.fora) + " não usaram a internet em " + ANO_ATUAL + ". Cerca de " + fmt(Math.max(0, base - estimado), 0) + " usaram.";
+      linha.textContent = msg("sim-linha", base, perfil.rotulo, perfil.fora, ANO_ATUAL, Math.max(0, base - estimado));
       var f = htmlEl("p", "sim-formula", null, saida);
-      f.textContent = "Conta: " + fmt(base, 0) + " × (100 - " + fmt(perfil.uso, 1) + ") ÷ 100 = " + (bruto > 0 && bruto < 1 ? fmt(bruto, 2) : fmt(estimado, 0)) + ". ";
+      f.textContent = msg("sim-conta", base, perfil.uso, bruto > 0 && bruto < 1 ? fmt(bruto, 2) : fmt(estimado, 0));
       escreverFonte(f, perfil.fonte);
       desenharBarra(perfil.fora, perfil.uso);
     }
 
-    entrada.addEventListener("input", atualizar);
-    entrada.addEventListener("blur", function () {
-      var n = lerBase();
-      if (n !== null) entrada.value = fmt(n, 0);
-    });
-    select.addEventListener("change", atualizar);
+    simAtualizar = atualizar;
     aoRedimensionar(barra, function () {
       atualizar();
     });
     atualizar();
+  }
+
+  function lerBase() {
+    var digitos = $("sim-base").value.replace(/\D/g, "");
+    if (!digitos) return null;
+    var n = parseInt(digitos.slice(0, 10), 10);
+    return isNaN(n) ? null : n;
+  }
+  function ligarSimulador() {
+    var entrada = $("sim-base");
+    entrada.addEventListener("input", function () {
+      simAtualizar();
+    });
+    entrada.addEventListener("blur", function () {
+      var n = lerBase();
+      if (n !== null) entrada.value = fmt(n, 0);
+    });
+    $("sim-perfil").addEventListener("change", function () {
+      simAtualizar();
+    });
   }
 
   function desenharMini(host, valores, anos, w) {
@@ -1141,21 +1183,26 @@
     var ult = F.anos.length - 1;
     var nomes = Object.keys(F.valores);
     var topo = nomes.slice().sort(function (a, b) { return F.valores[b][ult] - F.valores[a][ult]; }).slice(0, 3);
-    $("lead-uso").textContent =
-      "Entre quem usou a internet em " + F.anos[ult] + ", " + listaPt(topo.map(function (n) { return n.toLowerCase() + " (" + pct(F.valores[n][ult]) + ")"; })) + " lideram. Acessar bancos foi de " +
-      pct(F.valores["Acessar bancos"][F.anos.indexOf("2022")]) + " em 2022 para " + pct(F.valores["Acessar bancos"][ult]) + " em " + F.anos[ult] + ", e usar serviço público, de " +
-      pct(F.valores["Usar serviço público"][F.anos.indexOf("2022")]) + " para " + pct(F.valores["Usar serviço público"][ult]) + ".";
+    $("lead-uso").textContent = msg(
+      "lead-uso",
+      F.anos[ult],
+      topo.map(function (n) { return { rotulo: d(n), valor: F.valores[n][ult] }; }),
+      F.valores["Acessar bancos"][F.anos.indexOf("2022")],
+      F.valores["Acessar bancos"][ult],
+      F.valores["Usar serviço público"][F.anos.indexOf("2022")],
+      F.valores["Usar serviço público"][ult]
+    );
 
     var raiz = $("multiplos");
     nomes.forEach(function (nome) {
       var v = F.valores[nome];
       var primeiro = 0;
       while (v[primeiro] === null) primeiro++;
-      var d = Math.round((v[ult] - v[primeiro]) * 10) / 10;
+      var delta = Math.round((v[ult] - v[primeiro]) * 10) / 10;
       var mini = htmlEl("article", "mini", null, raiz);
-      htmlEl("h4", "mini-titulo", nome, mini);
+      htmlEl("h4", "mini-titulo", d(nome), mini);
       htmlEl("p", "mini-valor", pct(v[ult]), mini);
-      htmlEl("p", "mini-delta", pp(d) + " desde " + F.anos[primeiro], mini);
+      htmlEl("p", "mini-delta", msg("mini-delta", delta, F.anos[primeiro]), mini);
       var hostMini = htmlEl("div", "mini-grafico", null, mini);
       var eixo = htmlEl("div", "mini-eixo", null, mini);
       htmlEl("span", null, F.anos[0], eixo);
@@ -1166,15 +1213,15 @@
     });
     var nota = $("nota-multiplos");
     escreverFonte(nota, F.fonte);
-    nota.appendChild(document.createTextNode(". Cada pessoa pode ter mais de uma finalidade, por isso os valores não somam 100%. Anos sem dado são lacuna na linha, não zero. Cada minigráfico tem escala própria, então compare pelo valor e pela variação em p.p., não pela inclinação. Anos disponíveis: " + listaPt(F.anos) + "."));
+    nota.appendChild(document.createTextNode(msg("nota-multiplos", F.anos)));
     montarTabela($("tabela-multiplos"), {
-      legenda: F.rotulo + " (%).",
-      colunas: ["Finalidade"].concat(F.anos),
-      primeira: "Finalidade",
+      legenda: msg("uso-tab-legenda", d(F.rotulo)),
+      colunas: [msg("uso-tab-finalidade")].concat(F.anos),
+      primeira: msg("uso-tab-finalidade"),
       linhas: nomes.map(function (n) {
-        return [n].concat(F.valores[n].map(function (x) { return x === null ? "sem dado" : fmt(x, 1); }));
+        return [d(n)].concat(F.valores[n].map(function (x) { return x === null ? msg("sem-dado") : fmt(x, 1); }));
       }),
-      rodape: "Fonte: " + fonteCurta(F.fonte) + ".",
+      rodape: msg("uso-tab-rodape", fonteCurta(F.fonte)),
     });
 
     var formas = { Celular: ["cor-lilas", "circulo"], Televisão: ["cor-ciano", "quadrado"], Computador: ["cor-magenta", "triangulo"], Tablet: ["cor-suave", "losango"] };
@@ -1183,7 +1230,7 @@
       E.anos.forEach(function (a, i) {
         valores[a] = E.valores[n][i];
       });
-      return { id: n, rotulo: n, cor: formas[n][0], forma: formas[n][1], valores: valores, dados: null };
+      return { id: n, rotulo: d(n), cor: formas[n][0], forma: formas[n][1], valores: valores, dados: null };
     });
     var leg = $("legenda-equip");
     series.forEach(function (sr) {
@@ -1191,30 +1238,27 @@
       item.innerHTML = iconeMarcador(sr.forma, false);
       item.appendChild(document.createTextNode(sr.rotulo));
     });
-    legendaItem(leg, '<svg viewBox="0 0 22 14" width="22" height="14" aria-hidden="true"><path d="M1 7h20" class="g-linha" style="stroke:var(--texto-2);stroke-width:2" stroke-dasharray="4 3"/></svg>', "Tracejado: anos sem dado");
+    legendaItem(leg, '<svg viewBox="0 0 22 14" width="22" height="14" aria-hidden="true"><path d="M1 7h20" class="g-linha" style="stroke:var(--texto-2);stroke-width:2" stroke-dasharray="4 3"/></svg>', msg("tracejado-sem-dado"));
     var ue = E.anos.length - 1;
     var nE = $("nota-equip");
     escreverFonte(nE, E.fonte);
-    nE.appendChild(document.createTextNode(
-      ". Em " + E.anos[ue] + ", o celular lidera (" + pct(E.valores["Celular"][ue]) + "); a televisão foi de " + pct(E.valores["Televisão"][0]) + " em " + E.anos[0] + " para " + pct(E.valores["Televisão"][ue]) +
-      ", e o computador, de " + pct(E.valores["Computador"][0]) + " para " + pct(E.valores["Computador"][ue]) + ". Uma pessoa pode usar mais de um equipamento, por isso os valores somam mais de 100%."
-    ));
-    montarLinhas($("grafico-equip"), {
+    nE.appendChild(document.createTextNode(msg("nota-equip", E.anos[ue], E.valores["Celular"][ue], E.valores["Televisão"][0], E.anos[0], E.valores["Televisão"][ue], E.valores["Computador"][0], E.valores["Computador"][ue])));
+    montarLinhas(renovar("grafico-equip"), {
       series: series,
       yMin: 0,
       yMax: 100,
       yTicks: [0, 25, 50, 75, 100],
       fonte: E.fonte,
-      aria: "Gráfico de linhas: equipamentos usados para acessar a internet, de " + E.anos[0] + " a " + E.anos[ue] + ". Celular, televisão, computador e tablet. Use as setas para ler cada ano.",
+      aria: msg("equip-aria", E.anos[0], E.anos[ue]),
     });
     montarTabela($("tabela-equip"), {
-      legenda: E.rotulo + " (%).",
-      colunas: ["Equipamento"].concat(E.anos),
-      primeira: "Equipamento",
+      legenda: msg("uso-tab-legenda", d(E.rotulo)),
+      colunas: [msg("uso-tab-equipamento")].concat(E.anos),
+      primeira: msg("uso-tab-equipamento"),
       linhas: Object.keys(E.valores).map(function (n) {
-        return [n].concat(E.valores[n].map(function (x) { return fmt(x, 1); }));
+        return [d(n)].concat(E.valores[n].map(function (x) { return fmt(x, 1); }));
       }),
-      rodape: "Fonte: " + fonteCurta(E.fonte) + ".",
+      rodape: msg("uso-tab-rodape", fonteCurta(E.fonte)),
     });
   }
 
@@ -1223,29 +1267,30 @@
     Object.keys(D.fontes).forEach(function (id) {
       var f = D.fontes[id];
       var li = htmlEl("li", null, null, lista);
-      var a = htmlEl("a", null, f.titulo, li);
+      var a = htmlEl("a", null, d(f.titulo), li);
       a.href = f.url;
       a.rel = "noopener";
       var meta = [];
-      if (f.referencia) meta.push("Período de referência: " + f.referencia);
-      if (f.divulgacao) meta.push("Divulgação: " + dataBr(f.divulgacao));
+      if (f.referencia) meta.push(msg("fonte-meta-ref", d(f.referencia)));
+      if (f.divulgacao) meta.push(msg("fonte-meta-div", dataFmt(f.divulgacao)));
+      if (msg("fonte-em-portugues")) meta.push(msg("fonte-em-portugues"));
       if (meta.length) htmlEl("span", "fonte-meta", meta.join(" · "), li);
     });
     var notas = $("lista-notas");
     D.notas.forEach(function (n) {
-      htmlEl("li", null, n, notas);
+      htmlEl("li", null, d(n), notas);
     });
     var ant = anosAnteriores(["internet_pessoas", "internet_urbano", "internet_rural", "celular_pessoas", "internet_60mais"]);
     if (ant.length) {
       htmlEl(
         "li",
         null,
-        "Pontos de divulgação anterior (" + fonteCurta("tic2024") + "): " + ant.map(function (x) { return x.rotulo + " em " + listaPt(x.anos); }).join("; ") + ". Aparecem com marcador vazado nos gráficos e com asterisco nas tabelas.",
+        msg("notas-anterior", fonteCurta("tic2024"), ant.map(function (x) { return msg("em-anos", x.rotulo, x.anos); }).join("; ")),
         notas
       );
     }
-    htmlEl("li", null, "Os gráficos usam o ano real no eixo horizontal. Onde a série não tem dado, a linha é tracejada ou fica em branco, e nunca vira zero.", notas);
-    htmlEl("li", null, "Atualizado em " + dataBr(D.atualizado_em) + ". Os valores foram transcritos dos informativos do IBGE e conferidos contra o texto e os gráficos de cada documento.", notas);
+    htmlEl("li", null, msg("notas-eixo"), notas);
+    htmlEl("li", null, msg("notas-atualizado", dataFmt(D.atualizado_em)), notas);
   }
 
   function csvCampo(v) {
@@ -1253,23 +1298,25 @@
     return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
   }
   function gerarCsv() {
-    var linhas = [["bloco", "indicador", "rotulo", "categoria", "ano", "valor", "unidade", "fonte", "divulgacao_anterior"]];
+    var sim = msg("csv-sim");
+    var nao = msg("csv-nao");
+    var linhas = [msg("csv-cabecalho").split(",")];
     Object.keys(D.series).forEach(function (id) {
       var s = D.series[id];
       anosOrdenados(s.valores).forEach(function (a) {
-        linhas.push(["series", id, s.rotulo, "", a, s.valores[a], s.unidade, fonteDoAno(s, a), ehAnterior(s, a) ? "sim" : "nao"]);
+        linhas.push(["series", id, d(s.rotulo), "", a, s.valores[a], unidadeTxt(s.unidade), fonteDoAno(s, a), ehAnterior(s, a) ? sim : nao]);
       });
     });
     Object.keys(D.recortes_2025).forEach(function (id) {
       var r = D.recortes_2025[id];
       Object.keys(r.valores).forEach(function (cat) {
-        linhas.push(["recortes_2025", id, r.rotulo, cat, ANO_ATUAL, r.valores[cat], r.unidade, r.fonte, "nao"]);
+        linhas.push(["recortes_2025", id, d(r.rotulo), d(cat), ANO_ATUAL, r.valores[cat], r.unidade, r.fonte, nao]);
       });
     });
     ["motivos_pessoas_2025", "motivos_domicilios_2025", "sem_celular_motivos_2025"].forEach(function (id) {
       var b = D[id];
       Object.keys(b.valores).forEach(function (cat) {
-        linhas.push([id, id, b.rotulo, cat, ANO_ATUAL, b.valores[cat], b.unidade, b.fonte, "nao"]);
+        linhas.push([id, id, d(b.rotulo), d(cat), ANO_ATUAL, b.valores[cat], b.unidade, b.fonte, nao]);
       });
     });
     ["finalidades", "equipamentos"].forEach(function (id) {
@@ -1278,13 +1325,13 @@
         b.anos.forEach(function (a, i) {
           var v = b.valores[cat][i];
           if (v === null) return;
-          linhas.push([id, id, b.rotulo, cat, a, v, b.unidade, b.fonte, "nao"]);
+          linhas.push([id, id, d(b.rotulo), d(cat), a, v, b.unidade, b.fonte, nao]);
         });
       });
     });
     return "﻿" + linhas.map(function (l) { return l.map(csvCampo).join(","); }).join("\r\n") + "\r\n";
   }
-  function iniciarCsv() {
+  function ligarCsv() {
     $("baixar-csv").addEventListener("click", function () {
       var blob = new Blob([gerarCsv()], { type: "text/csv;charset=utf-8" });
       var url = URL.createObjectURL(blob);
@@ -1300,16 +1347,132 @@
     });
   }
 
-  iniciarTema();
-  iniciarHero();
-  iniciarPontos();
-  iniciarKpis();
-  iniciarLinhas();
-  iniciarMotivos();
-  iniciarRecortes();
-  iniciarAtendimento();
-  iniciarSimulador();
-  iniciarUso();
-  iniciarRodape();
-  iniciarCsv();
+  function renovar(id) {
+    var antigo = $(id);
+    var novo = antigo.cloneNode(false);
+    antigo.parentNode.replaceChild(novo, antigo);
+    return novo;
+  }
+
+  function limparGerados() {
+    observadores.forEach(function (fn) {
+      fn();
+    });
+    observadores = [];
+    Array.prototype.forEach.call(document.querySelectorAll("[data-gerado]"), function (no) {
+      no.parentNode.removeChild(no);
+    });
+    [
+      "hero-pontos", "kpis", "legenda-linhas", "nota-linhas", "nota-motivos", "nota-recortes", "atendimento",
+      "multiplos", "nota-multiplos", "legenda-equip", "nota-equip", "lista-fontes", "lista-notas",
+    ].forEach(function (id) {
+      limpar($(id));
+    });
+  }
+
+  function definirMeta(seletor, valor) {
+    var el = document.querySelector(seletor);
+    if (el) el.setAttribute("content", valor);
+  }
+
+  function aplicarEstatico() {
+    document.documentElement.setAttribute("lang", LANG === "en" ? "en" : "pt-BR");
+    document.title = msg("meta-titulo");
+    definirMeta('meta[name="description"]', msg("meta-descricao"));
+    definirMeta('meta[property="og:title"]', msg("meta-titulo"));
+    definirMeta('meta[property="og:description"]', msg("meta-descricao"));
+    definirMeta('meta[property="og:locale"]', msg("og-locale"));
+    definirMeta('meta[name="twitter:title"]', msg("meta-titulo"));
+    definirMeta('meta[name="twitter:description"]', msg("meta-descricao"));
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (no) {
+      no.textContent = msg(no.getAttribute("data-i18n"));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-html]"), function (no) {
+      no.innerHTML = msg(no.getAttribute("data-i18n-html"));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-aria]"), function (no) {
+      no.setAttribute("aria-label", msg(no.getAttribute("data-i18n-aria")));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-title]"), function (no) {
+      no.setAttribute("title", msg(no.getAttribute("data-i18n-title")));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-idioma]"), function (a) {
+      var ativo = a.getAttribute("data-idioma") === LANG;
+      a.classList.toggle("on", ativo);
+      if (ativo) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    });
+    rotuloTema();
+  }
+
+  function renderizar() {
+    limparGerados();
+    aplicarEstatico();
+    if (!D) {
+      var erro = $("erro-dados");
+      if (erro) erro.hidden = false;
+      return;
+    }
+    iniciarHero();
+    iniciarPontos();
+    iniciarKpis();
+    iniciarLinhas();
+    iniciarMotivos();
+    iniciarRecortes();
+    iniciarAtendimento();
+    iniciarSimulador();
+    iniciarUso();
+    iniciarRodape();
+  }
+
+  function idiomaInicial() {
+    try {
+      var url = new URLSearchParams(window.location.search).get("lang");
+      if (url) {
+        url = url.toLowerCase();
+        if (IDIOMAS.indexOf(url) >= 0) return url;
+      }
+    } catch (e) {}
+    try {
+      var salvo = localStorage.getItem(CHAVE_IDIOMA);
+      if (salvo && IDIOMAS.indexOf(salvo) >= 0) return salvo;
+    } catch (e) {}
+    return "pt";
+  }
+
+  function atualizarUrl() {
+    try {
+      var u = new URL(window.location.href);
+      u.searchParams.set("lang", LANG);
+      window.history.replaceState(null, "", u.toString());
+    } catch (e) {}
+  }
+
+  function trocarIdioma(novo) {
+    if (IDIOMAS.indexOf(novo) < 0 || novo === LANG) return;
+    LANG = novo;
+    try {
+      localStorage.setItem(CHAVE_IDIOMA, LANG);
+    } catch (e) {}
+    atualizarUrl();
+    animar = false;
+    renderizar();
+  }
+
+  function ligarIdioma() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-idioma]"), function (a) {
+      a.addEventListener("click", function (ev) {
+        if (ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+        ev.preventDefault();
+        trocarIdioma(a.getAttribute("data-idioma"));
+      });
+    });
+  }
+
+  LANG = idiomaInicial();
+  ligarIdioma();
+  ligarTema();
+  ligarCsv();
+  ligarSimulador();
+  renderizar();
 })();

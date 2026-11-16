@@ -33,6 +33,16 @@ A PNAD Contínua (Pesquisa Nacional por Amostra de Domicílios Contínua) é a p
 
 Todas as fontes são publicações do IBGE.
 
+## Idiomas (português e inglês)
+
+O painel é bilíngue. O botão "PT | EN", ao lado do botão de tema, troca o idioma sem recarregar a página e mantém o recorte escolhido, os motivos, o simulador e o tema.
+
+- Ordem de escolha: parâmetro `?lang=en` ou `?lang=pt` na URL, depois a última escolha salva em `localStorage` (chave `fdd-idioma`), depois português.
+- A troca atualiza o `<html lang>`, o título e a meta description. Números seguem o idioma (`17,7` e `p.p.` em português, `17.7` e `pp` em inglês).
+- Os textos estão em `assets/i18n.js`: `I18N_ESTATICO` (textos fixos do `index.html`, marcados com `data-i18n`), `I18N_FRASES` (frases montadas com números) e `I18N_DADOS` (rótulos e categorias que vêm de `data/pnad_tic.json`, que continua só em português).
+- O teste `tests/test_i18n.py` falha se um rótulo novo em `data/pnad_tic.json` ficar sem tradução, se uma chave usada em `assets/painel.js` não existir ou se o português do `index.html` divergir do dicionário.
+- Termos oficiais e escolhas de tradução: [docs/GLOSSARY.md](docs/GLOSSARY.md).
+
 ## Como rodar
 
 Abra o arquivo `index.html` com duplo clique. Não precisa de servidor, instalação nem internet.
@@ -69,7 +79,9 @@ O CI repete esses passos e confere, com `python3 scripts/gerar_dados.py --check`
 python3 -m unittest discover -s tests -v
 ```
 
-São 32 testes em `tests/test_dados.py`, escritos com o `unittest` que já vem no Python, sem instalar nada. Eles conferem o validador (fontes que não existem, percentuais fora de 0 a 100, anos fora de ordem, listas com tamanho diferente dos anos, motivos que não somam 100%, textos vazios, blocos obrigatórios e valores nulos), os cálculos do gerador (distância entre urbano e rural, variações, percentual de quem está fora, razão de renda e soma dos motivos), a geração do `data/dados.js` sem alterar os valores originais e o modo `--check`, que acusa um `data/dados.js` desatualizado.
+São 43 testes: 32 em `tests/test_dados.py` e 11 em `tests/test_i18n.py`, escritos com o `unittest` que já vem no Python, sem instalar nada. Eles conferem o validador (fontes que não existem, percentuais fora de 0 a 100, anos fora de ordem, listas com tamanho diferente dos anos, motivos que não somam 100%, textos vazios, blocos obrigatórios e valores nulos), os cálculos do gerador (distância entre urbano e rural, variações, percentual de quem está fora, razão de renda e soma dos motivos), a geração do `data/dados.js` sem alterar os valores originais e o modo `--check`, que acusa um `data/dados.js` desatualizado.
+
+Os testes de `tests/test_i18n.py` conferem que todo rótulo dos dados tem tradução em inglês, que as chaves do painel e do HTML existem no dicionário, que o português do `index.html` é igual ao do dicionário e que o seletor de idioma está no HTML.
 
 O workflow `.github/workflows/validar.yml` roda a validação do JSON, os testes e o `--check` a cada push e a cada pull request. O selo no topo deste README mostra o resultado da última execução.
 
@@ -78,12 +90,15 @@ O workflow `.github/workflows/validar.yml` roda a validação do JSON, os testes
 ```
 index.html                  página do painel
 assets/estilo.css           tema escuro e claro, layout responsivo
-assets/painel.js            gráficos em SVG, simulador, tabelas e CSV
+assets/painel.js            gráficos em SVG, simulador, tabelas, CSV e troca de idioma
+assets/i18n.js              dicionário português e inglês (textos fixos, frases e rótulos dos dados)
 data/pnad_tic.json          dados transcritos do IBGE, com fonte por série
 data/dados.js               gerado a partir do JSON (window.DADOS)
 scripts/gerar_dados.py      valida, calcula derivados e gera dados.js
 scripts/validar_dados.py    regras de qualidade dos dados
 tests/test_dados.py         testes do validador e do gerador
+tests/test_i18n.py          testes do dicionário português e inglês
+docs/GLOSSARY.md            glossário de termos e categorias em português e inglês
 docs/METODOLOGIA.md         como cada número foi obtido e calculado
 .github/workflows/          CI que valida dados e testes
 ```
@@ -94,6 +109,7 @@ docs/METODOLOGIA.md         como cada número foi obtido e calculado
 - **`data/dados.js` gerado do JSON.** Navegadores bloqueiam `fetch` de arquivos locais, então um `window.DADOS` carregado por `<script>` permite abrir a página por duplo clique. O JSON continua sendo a fonte de verdade, e o CI barra um `dados.js` desatualizado.
 - **Gráficos SVG desenhados à mão.** O eixo respeita o espaçamento real dos anos, séries com anos faltantes têm trechos tracejados, valores nulos viram lacuna e o foco, o tooltip e o teclado seguem o comportamento definido pelo projeto.
 - **Cálculos em Python, leitura em JavaScript.** Variações, gaps e percentuais de quem está fora são calculados e testados no gerador. O navegador só exibe.
+- **Dicionário fora dos dados.** `data/pnad_tic.json` e `data/dados.js` ficam só em português, como transcritos do IBGE. As traduções dos rótulos moram em `assets/i18n.js`, indexadas pelo texto original, e um teste barra rótulo sem tradução.
 - **Tema escuro por padrão.** A preferência de tema é salva em `localStorage`, com tratamento de erro caso o navegador bloqueie o armazenamento.
 
 ## Limitações
