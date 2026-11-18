@@ -38,7 +38,7 @@ Os recortes de idade, instrução e cor ou raça são listas parciais: contêm a
 
 ## Cálculos feitos pelo projeto
 
-Todos os cálculos ficam em `scripts/gerar_dados.py` e são gravados no bloco `derivados` de `data/dados.js`. O navegador só lê esses valores.
+Os cálculos sobre os dados ficam em `scripts/gerar_dados.py` e são gravados no bloco `derivados` de `data/dados.js`. O navegador lê esses valores e faz apenas contas de apresentação: a diferença de cada categoria para a média do Brasil, a estimativa do simulador e a variação desde o primeiro ano da série nas finalidades.
 
 | Cálculo | Fórmula | Uso |
 | --- | --- | --- |

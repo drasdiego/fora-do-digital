@@ -23,23 +23,23 @@ A PNAD Contínua (Pesquisa Nacional por Amostra de Domicílios Contínua) é a p
 
 ## O que o painel mostra
 
-- Indicadores principais com tendência: pessoas que usaram a internet, pessoas sem internet (em milhões e em percentual), domicílios com internet, pessoas com celular para uso pessoal e pessoas de 60 anos ou mais online.
-- Evolução do uso da internet nas áreas urbana e rural.
+- Seis indicadores principais com tendência: pessoas que usaram a internet, pessoas sem internet em 2025 (em milhões, com o percentual na linha de apoio), domicílios com internet, pessoas com celular para uso pessoal, pessoas de 60 anos ou mais online e área rural online.
+- Evolução do uso da internet nas áreas urbana e rural, com a série do Brasil junto e a distância entre urbano e rural destacada nos dois extremos.
 - Recortes de 2025 por região, área, idade, instrução, sexo e cor ou raça, um de cada vez.
 - Motivos para não usar a internet, de pessoas e de domicílios, e motivos para não ter celular.
 - Finalidades de uso da internet e equipamentos usados para acessar.
-- Destaque com o rendimento médio mensal real per capita dos domicílios com e sem internet.
-- Simulador "Sua base de clientes", tabela alternativa em cada gráfico e download dos dados em CSV.
+- Seção para quem desenha atendimento, com quatro cartões no padrão fato, leitura e limitação. Um deles traz o rendimento médio mensal real per capita dos domicílios com e sem internet.
+- Simulador "Sua base de clientes" (em inglês, "Your customer base"), com dez perfis: Brasil, as cinco regiões, área urbana, área rural, 60 anos ou mais e sem instrução. Tabela alternativa nos seis blocos de gráficos e download dos dados em CSV.
 
 Todas as fontes são publicações do IBGE.
 
 ## Idiomas (português e inglês)
 
-O painel é bilíngue. O botão "PT | EN", ao lado do botão de tema, troca o idioma sem recarregar a página e mantém o recorte escolhido, os motivos, o simulador e o tema.
+O painel é bilíngue. O seletor "PT | EN", ao lado do botão de tema, troca o idioma sem recarregar a página, atualiza o parâmetro `?lang=` na URL e mantém o recorte escolhido, os motivos, o simulador e o tema.
 
 - Ordem de escolha: parâmetro `?lang=en` ou `?lang=pt` na URL, depois a última escolha salva em `localStorage` (chave `fdd-idioma`), depois português.
-- A troca atualiza o `<html lang>`, o título e a meta description. Números seguem o idioma (`17,7` e `p.p.` em português, `17.7` e `pp` em inglês).
-- Os textos estão em `assets/i18n.js`: `I18N_ESTATICO` (textos fixos do `index.html`, marcados com `data-i18n`), `I18N_FRASES` (frases montadas com números) e `I18N_DADOS` (rótulos e categorias que vêm de `data/pnad_tic.json`, que continua só em português).
+- A troca atualiza o `<html lang>`, o título, a meta description e as marcações de compartilhamento (Open Graph e Twitter). Números seguem o idioma (`17,7` e `p.p.` em português, `17.7` e `pp` em inglês).
+- Os textos estão em `assets/i18n.js`: `I18N_ESTATICO` (textos fixos do `index.html`, marcados com `data-i18n`, `data-i18n-html`, `data-i18n-aria` e `data-i18n-title`, mais os rótulos que o `assets/painel.js` monta), `I18N_FRASES` (frases montadas com números) e `I18N_DADOS` (rótulos e categorias que vêm de `data/pnad_tic.json`, que continua só em português).
 - O teste `tests/test_i18n.py` falha se um rótulo novo em `data/pnad_tic.json` ficar sem tradução, se uma chave usada em `assets/painel.js` não existir ou se o português do `index.html` divergir do dicionário.
 - Termos oficiais e escolhas de tradução: [docs/GLOSSARY.md](docs/GLOSSARY.md).
 
@@ -100,6 +100,9 @@ tests/test_dados.py         testes do validador e do gerador
 tests/test_i18n.py          testes do dicionário português e inglês
 docs/GLOSSARY.md            glossário de termos e categorias em português e inglês
 docs/METODOLOGIA.md         como cada número foi obtido e calculado
+docs/screenshot.png         captura do painel no computador
+docs/screenshot-mobile.png  captura do painel no celular
+assets/previa.png           imagem de pré-visualização para compartilhamento
 .github/workflows/          CI que valida dados e testes
 ```
 
@@ -108,7 +111,7 @@ docs/METODOLOGIA.md         como cada número foi obtido e calculado
 - **JavaScript puro, sem framework e sem CDN.** O painel tem poucas telas e nenhuma dependência para manter. Funciona offline e continua funcionando daqui a anos.
 - **`data/dados.js` gerado do JSON.** Navegadores bloqueiam `fetch` de arquivos locais, então um `window.DADOS` carregado por `<script>` permite abrir a página por duplo clique. O JSON continua sendo a fonte de verdade, e o CI barra um `dados.js` desatualizado.
 - **Gráficos SVG desenhados à mão.** O eixo respeita o espaçamento real dos anos, séries com anos faltantes têm trechos tracejados, valores nulos viram lacuna e o foco, o tooltip e o teclado seguem o comportamento definido pelo projeto.
-- **Cálculos em Python, leitura em JavaScript.** Variações, gaps e percentuais de quem está fora são calculados e testados no gerador. O navegador só exibe.
+- **Cálculos em Python, leitura em JavaScript.** Variações, gaps, percentuais de quem está fora, razão de renda e soma dos motivos são calculados e testados no gerador. No navegador ficam só as contas de apresentação: a diferença de cada categoria para a média do Brasil, a estimativa do simulador e a variação desde o primeiro ano da série nas finalidades.
 - **Dicionário fora dos dados.** `data/pnad_tic.json` e `data/dados.js` ficam só em português, como transcritos do IBGE. As traduções dos rótulos moram em `assets/i18n.js`, indexadas pelo texto original, e um teste barra rótulo sem tradução.
 - **Tema escuro por padrão.** A preferência de tema é salva em `localStorage`, com tratamento de erro caso o navegador bloqueie o armazenamento.
 
